@@ -1,33 +1,42 @@
 /*
- * The fixed point, v2: an S that becomes infinity and comes back.
+ * The fixed point, v3: five shapes through one point.
  *
- * One seamless loop, 26 seconds:
+ * One seamless loop. Every shape passes through the fixed point and morphs
+ * smoothly into the next:
  *
- *   0-10 s   A family of S-curves y = N((x - k) / s) steepens. Every member
- *            passes through the same point (k, 1/2). A dot drifts at random
- *            along the live curve; faint copies of earlier curves build a fan.
- *  10-14 s   The live curve opens into an infinity sign whose crossing is the
- *            fixed point: its tails wind into two loops while a second strand
- *            peels off the S and swings down to the horizontal. The fan fades.
- *  14-20 s   Infinity. The dot glides around it.
- *  20-26 s   The infinity unwinds into the wide S it started from. The dot
- *            arrives back at the fixed point just as the S settles, and the
- *            loop goes on from there.
+ *   S         delta: the S-curve N((x - k) / s), steepening; every member
+ *             passes through (k, 1/2), and faint copies build a fan
+ *   bell      gamma, the slope of delta: a normal curve standing on the axis,
+ *             its peak right above the fixed point
+ *   smile     vega: the volatility smile, lowest at the fixed point
+ *   spiral    the Cornu (Euler) spiral; its arms wind toward (1/2, 1/2) and
+ *             (-1/2, -1/2), then unwind
+ *   infinity  a lemniscate that crosses itself at the fixed point, then
+ *             unwinds into the wide S, and the loop goes on
  *
- * The live shape is one closed path of four strands, each resampled evenly
- * along its length so the S and the infinity can be blended point by point:
+ * A dot slides freely along whatever is on screen at a calm, steady speed.
+ * It eases through tight turns and turns back gently before it would leave
+ * the screen. Its position on the path carries over from shape to shape, so
+ * it never jumps. When a morph is about to carry its stretch of path off
+ * screen, it heads back toward the fixed point.
  *
- *   AL  left end -> centre   S left half            | lower-left loop, outer arc
- *   AR  centre -> right end  S right half           | upper-right loop, outer arc
- *   BR  right end -> centre  S right half, reversed | upper-right loop, inner arc
- *   BL  centre -> left end   S left half, reversed  | lower-left loop, inner arc
+ * How the shapes blend: each shape is one closed path of four strands,
+ * resampled evenly along their length, so any two shapes can be blended
+ * point by point:
  *
- * As an S, B lies exactly on A. As infinity, A and B are the two arcs of each
- * loop. Every strand keeps the centre at the same index, so the fixed point
- * never moves. The loops are a lemniscate of Bernoulli turned 45 degrees: it
- * leaves the centre vertically and horizontally, like the steep S and the
- * axis, and stays inside the two quadrants the S-curves already use, so the
- * label quadrant stays clear.
+ *   AL -> AR   one side (the S, the bell's hump, the smile, the spiral, the
+ *              infinity's outer arcs)
+ *   BR -> BL   the other side, which meets itself at the fixed point at the
+ *              BR/BL join (the open curves retraced, the bell's baseline,
+ *              the infinity's inner arcs)
+ *
+ * The BR/BL join is the fixed point in every shape, so the point never moves.
+ * Open curves (the S, the smile, the spiral) are retraced: B runs back along
+ * A. At each end, A turns back in a hairpin, and B rides just beside A for a
+ * stretch before rejoining it. Each hairpin turns the same way as the end of
+ * the shape it blends with, so no blend pinches into a cusp. Where two
+ * neighbours disagree, the hairpin swaps direction off screen during a hold.
+ * Every shape keeps clear of the lower-right quarter, where the label sits.
  *
  * Without JavaScript, or with reduced motion, the static SVG (the fan and
  * the infinity) is shown instead.
@@ -49,44 +58,64 @@
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
   var dark = window.matchMedia("(prefers-color-scheme: dark)");
 
-  // Timeline, in seconds.
-  var T_STEEP = 10;    // the S steepens
-  var T_OPEN = 4;      // the S opens into infinity
-  var T_INF = 6;       // infinity
-  var T_CLOSE = 6;     // infinity unwinds into the wide S
-  var T1 = T_STEEP, T2 = T1 + T_OPEN, T3 = T2 + T_INF, LOOP = T3 + T_CLOSE;
-  var LAPS = 2;        // full laps the dot makes while the shape is open
-  var FADE_IN = 1.2;   // first appearance only
+  // ---------------------------------------------------------------------
+  // Timeline, in seconds. A shape name holds that shape; a pair morphs from
+  // the first to the second. The last step unwinds back into the first.
+  var SEQUENCE = [
+    ["S", 7],                 // the S steepens, the fan builds
+    ["S", "bell", 3.5],
+    ["bell", 4],
+    ["bell", "smile", 3.5],
+    ["smile", 4],
+    ["smile", "spiral", 3.5],
+    ["spiral", 5.5],          // winds up, holds, unwinds
+    ["spiral", "infinity", 3.5],
+    ["infinity", 5],
+    ["infinity", "S", 6]      // unwinds into the wide S: the seam
+  ];
+  var FADE_IN = 1.2;          // first appearance only
 
-  var GHOST_RATIO = 0.86; // keep a faint copy each time the width shrinks by this factor
+  // The dot: cruising speed (px/s, scaled to the screen), how quickly it
+  // eases to a new speed or direction (s), and how much it slows in turns.
+  var SPEED_MIN = 90, SPEED_MAX = 190, SPEED_PER_PX = 0.14;
+  var EASE = 1.0;
+  var TURN_SLOW = 18;
+  var TRAIL = 48;             // frames of trace behind the dot
 
-  // Curve width at the start and the narrowest it gets, in svg units
-  // (1 unit = 1/1000 of the page width). It never reaches a step.
-  var S0 = 640;
-  var SMIN = 34;
+  // The S: width at the start and narrowest, in svg units (1/1000 of the
+  // page width). It never reaches a step.
+  var S0 = 640, SMIN = 34;
+  var GHOST_RATIO = 0.86;     // a faint copy each time the S narrows by this factor
 
-  var N = 160;            // points per strand
+  var N = 160;                // points per strand
+  // ---------------------------------------------------------------------
+
+  var steps = [], LOOP = 0;
+  (function () {
+    var t = 0;
+    for (var i = 0; i < SEQUENCE.length; i++) {
+      var s = SEQUENCE[i], d = s[s.length - 1];
+      steps.push({ from: s[0], to: s.length === 3 ? s[1] : null, start: t, dur: d });
+      t += d;
+    }
+    LOOP = t;
+  })();
 
   var W = 0, H = 0, cx = 0, cy = 0, amp = 0, unit = 0, dpr = 1;
   var colors = { ink: "#16202C", signal: "#2747C9", paper: "#ECEEEA", ghost: 0.2 };
 
-  var inf = null;               // the four strands of the infinity, on screen
-  var shape = [];               // the blended closed path, 4N points
-  var dense = [];               // scratch
+  var shapes = {};            // precomputed strands for the fixed shapes
+  var shape = [];             // the current closed path, 4N points
+  var target = null;          // the shape being morphed into, if any
+  var pathLen = 1;
 
-  var clock = 0;        // time since start, for the first fade-in
-  var tau = 0;          // time in the loop
-  var walk = 0;         // random walk, svg units from the fixed point
-  var dot = 0;          // dot position on the S, eased toward the walk
-  var gliding = false;  // true while the dot follows the closed path
-  var glideFrom = 0;    // its parameter on the path when the glide starts
-  var glideBy = 0;      // and how far it travels
-  var ghosts = [];
-  var nextGhost = 0;
-  var trail = [];       // recent dot positions on screen
-  var last = 0;
-  var raf = 0;
-  var running = false;
+  var clock = 0, tau = 0;
+  var v = 0.25, spd = 0, dir = 1;  // dot: parameter on the path, speed (px/s), heading
+  var ghosts = [], nextGhost = 0;
+  var trail = [];
+  var last = 0, raf = 0, running = false;
+
+  // --- maths -----------------------------------------------------------
 
   // Normal CDF through erf (Abramowitz and Stegun 7.1.26).
   function cdf(z) {
@@ -96,25 +125,9 @@
     return z >= 0 ? 0.5 * (1 + y) : 0.5 * (1 - y);
   }
 
-  function gauss() {
-    var u = 1 - Math.random();
-    var v = Math.random();
-    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  }
-
   function clamp01(p) { return p < 0 ? 0 : p > 1 ? 1 : p; }
-  // Starts and ends at rest.
   function smoother(p) { p = clamp01(p); return p * p * p * (p * (6 * p - 15) + 10); }
-  // Starts at rest, ends with a long, slow approach.
   function steepEase(p) { p = clamp01(p); var q = 1 - p * p; return 1 - q * q * q; }
-
-  function readColors() {
-    var cs = getComputedStyle(root);
-    colors.ink = cs.getPropertyValue("--ink").trim() || colors.ink;
-    colors.signal = cs.getPropertyValue("--signal").trim() || colors.signal;
-    colors.paper = cs.getPropertyValue("--paper").trim() || colors.paper;
-    colors.ghost = parseFloat(cs.getPropertyValue("--ghost")) || colors.ghost;
-  }
 
   // Resample a polyline to n points evenly spaced along its length.
   function resample(pts, n, out) {
@@ -138,10 +151,169 @@
     return out;
   }
 
-  // One loop of a lemniscate of Bernoulli turned 45 degrees, r^2 = sin 2phi,
-  // scaled to a unit box (y up). Returns [outer, inner]: outer leaves the
-  // centre vertically and ends at the tip; inner runs from the tip back to the
-  // centre, arriving horizontally. The same curve as the static SVG.
+  // Half a turn about the fixed point, run the other way.
+  function mirror(strand) {
+    var out = [];
+    for (var i = strand.length - 1; i >= 0; i--) out.push([2 * cx - strand[i][0], 2 * cy - strand[i][1]]);
+    return out;
+  }
+
+  // An open half-curve as the A and B strands of one side. poly runs from
+  // the fixed point out to the end of the curve. A follows it and begins a
+  // hairpin turn of radius rho, to its right (side 1) or left (side -1). B finishes the turn, rides
+  // beside A at 2 rho, eases back onto it over a length `merge`, and follows
+  // it home.
+  function hairpin(poly, rho, merge, side) {
+    side = side || 1;
+    var m = poly.length, i, len = [0];
+    for (i = 1; i < m; i++) len.push(len[i - 1] + Math.hypot(poly[i][0] - poly[i - 1][0], poly[i][1] - poly[i - 1][1]));
+    var total = len[m - 1];
+    function normal(i) {
+      var a = poly[Math.max(0, i - 1)], b = poly[Math.min(m - 1, i + 1)];
+      var dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+      return [dx / l, dy / l, -side * dy / l, side * dx / l];   // tangent, normal on `side`
+    }
+    var E = poly[m - 1], F = normal(m - 1);
+    var ccx = E[0] + rho * F[2], ccy = E[1] + rho * F[3];
+    function turn(th) {
+      return [ccx + rho * (-F[2] * Math.cos(th) + F[0] * Math.sin(th)),
+              ccy + rho * (-F[3] * Math.cos(th) + F[1] * Math.sin(th))];
+    }
+    var A = poly.slice(), B = [];
+    for (i = 1; i <= 16; i++) A.push(turn((Math.PI / 2) * i / 16));
+    for (i = 0; i <= 16; i++) B.push(turn(Math.PI / 2 + (Math.PI / 2) * i / 16));
+    for (i = m - 2; i >= 0; i--) {
+      var s = total - len[i];
+      var w = s < merge ? 0.5 + 0.5 * Math.cos(Math.PI * s / merge) : 0;
+      if (w > 0) {
+        var G = normal(i);
+        B.push([poly[i][0] + 2 * rho * w * G[2], poly[i][1] + 2 * rho * w * G[3]]);
+      } else {
+        B.push([poly[i][0], poly[i][1]]);
+      }
+    }
+    return [resample(A, N), resample(B, N)];
+  }
+
+  // Four strands from the right half and a mirrored left half.
+  function fromHalves(right, left) {
+    return [mirror(left[0]), right[0], right[1], mirror(left[1])];
+  }
+
+  // --- the shapes --------------------------------------------------------
+
+  function box(el, fw, fh) {
+    var r = el && el.getBoundingClientRect();
+    return r && r.width > 0 && r.height > 0 ? [r.width, r.height] : [fw, fh];
+  }
+
+  // The S of width s (svg units). Its hairpins sit off screen, past each
+  // edge, so on screen it is a single line.
+  // The S keeps its right hairpin turning clockwise. Its left hairpin turns
+  // the way the next shape needs: counter-clockwise like the infinity's left
+  // loop (side 1), or clockwise like the bell's left foot (side -1). Both
+  // hairpins are off screen, so switching between them is invisible.
+  var sCache = {};
+  function buildS(s, leftSide) {
+    var key = leftSide + ":" + s.toFixed(2);
+    if (sCache.key === key) return sCache.strands;
+    var sp = Math.max(s * unit, 0.3), rho = 0.35 * amp, merge = 8 * rho;
+    // Each half runs just past its own screen edge, then turns.
+    function half(reach) {
+      var poly = [], m = 260, end = reach + merge;
+      for (var i = 0; i <= m; i++) {
+        var q = i / m, x = cx + end * q * q;
+        poly.push([x, cy + amp - 2 * amp * cdf((x - cx) / sp)]);
+      }
+      return poly;
+    }
+    sCache.key = key;
+    sCache.strands = fromHalves(hairpin(half(W + 20 - cx), rho, merge, 1),
+                                hairpin(half(cx + 20), rho, merge, leftSide));
+    return sCache.strands;
+  }
+
+  // Gamma: a normal curve standing on the axis, its peak right above the
+  // fixed point, its feet rounded. A is the hump (left foot to right foot),
+  // B the baseline back through the fixed point.
+  function buildBell() {
+    var L = Math.min(2.1 * amp, W - cx - 24), r = Math.max(4, 0.05 * amp);
+    L = Math.max(L - r, 40);
+    var sig = L / 3, Hh = amp, eL = Math.exp(-L * L / (2 * sig * sig));
+    function hump(x) { return 2 * r + (Hh - 2 * r) * (Math.exp(-x * x / (2 * sig * sig)) - eL) / (1 - eL); }
+    function P(x, y) { return [cx + x, cy - y]; }
+    var AL = [], AR = [], BR = [], BL = [], i, k = 24, m = 200, ph, x;
+    for (i = 0; i <= k; i++) { ph = Math.PI - (Math.PI / 2) * i / k; AL.push(P(-L + r * Math.cos(ph), r + r * Math.sin(ph))); }
+    for (i = 1; i <= m; i++) { x = -L + L * i / m; AL.push(P(x, hump(x))); }
+    for (i = 0; i <= m; i++) { x = L * i / m; AR.push(P(x, hump(x))); }
+    for (i = 1; i <= k; i++) { ph = Math.PI / 2 - (Math.PI / 2) * i / k; AR.push(P(L + r * Math.cos(ph), r + r * Math.sin(ph))); }
+    for (i = 0; i <= k; i++) { ph = -(Math.PI / 2) * i / k; BR.push(P(L + r * Math.cos(ph), r + r * Math.sin(ph))); }
+    for (i = 1; i <= m; i++) BR.push(P(L - L * i / m, 0));
+    for (i = 0; i <= m; i++) BL.push(P(-L * i / m, 0));
+    for (i = 1; i <= k; i++) { ph = -Math.PI / 2 - (Math.PI / 2) * i / k; BL.push(P(-L + r * Math.cos(ph), r + r * Math.sin(ph))); }
+    return [resample(AL, N), resample(AR, N), resample(BR, N), resample(BL, N)];
+  }
+
+  // Vega: the volatility smile, a parabola whose lowest point is the fixed
+  // point, its arms rising out of the screen. Like the S, it is retraced,
+  // with its hairpins off screen. The left hairpin can turn either way (see
+  // the S).
+  function buildSmile(leftSide) {
+    var Xs = Math.max(0.45 * W, 1.6 * amp), rho = 0.35 * amp, merge = 4 * rho;
+    var M = merge + 20, step = 3;
+    // Each arm runs until it is M past the edge of the screen, then turns.
+    function arm(sign) {
+      var pts = [], x = 0, y = 0;
+      do {
+        y = amp * (x / Xs) * (x / Xs);
+        pts.push([cx + x, cy + sign * y]);
+        x += step;
+      } while (cy - y > -M && (sign < 0 ? cx + x < W + M : cx - x > -M));
+      return pts;
+    }
+    // The left arm is built turned half a circle, as fromHalves expects.
+    return fromHalves(hairpin(arm(-1), rho, merge, 1), hairpin(arm(1), rho, merge, leftSide));
+  }
+
+  // The Cornu spiral (x, y) = (S(t), C(t)), Fresnel integrals, mirrored so
+  // it leaves the fixed point straight up and turns clockwise, like the
+  // infinity. Each arm winds toward (1/2, 1/2) in its own quarter.
+  var TM_LO = 1.0, TM_HI = 2.9;    // spiral length: a curl, fully wound
+  var FRESNEL = (function () {
+    var pts = [[0, 0]], x = 0, y = 0, TM = TM_HI, n = 1400, dt = TM / n;
+    for (var i = 0; i < n; i++) {
+      var t = (i + 0.5) * dt, a = Math.PI * t * t / 2;
+      x += Math.sin(a) * dt;
+      y += Math.cos(a) * dt;
+      pts.push([x, y]);
+    }
+    return pts;
+  })();
+
+  // The spiral with arms of length tm (TM_LO: a hook, TM_HI: wound twice).
+  // It meets the other shapes as a hook and winds up only while it holds,
+  // so no blend ever has to drag a coil around.
+  var spCache = { tm: -1, strands: null }, boxes = null;
+  function buildSpiral(tm) {
+    if (Math.abs(tm - spCache.tm) < 0.002 && spCache.strands) return spCache.strands;
+    var n = Math.max(8, Math.round((FRESNEL.length - 1) * tm / TM_HI));
+    var pts = FRESNEL.slice(0, n + 1);
+    function half(bw, bh) {
+      var ky = bh / 0.78, kx = Math.min(bw / 0.72, 1.4 * ky);
+      var poly = pts.map(function (p) { return [cx + kx * p[0], cy - ky * p[1]]; });
+      // A wide turn while it is a hook, so blends with the other shapes'
+      // round ends stay smooth; a tight one once it is wound.
+      var rho = 1.5 + (0.1 * ky - 1.5) * (TM_HI - tm) / (TM_HI - TM_LO);
+      return hairpin(poly, rho, 5 * rho + 10);
+    }
+    spCache.tm = tm;
+    spCache.strands = fromHalves(half(boxes.r[0], boxes.r[1]), half(boxes.l[0], boxes.l[1]));
+    return spCache.strands;
+  }
+
+  // The infinity: one loop of a lemniscate of Bernoulli turned 45 degrees,
+  // r^2 = sin 2phi, scaled to a unit box, placed in each quarter. Outer arcs
+  // leave the fixed point vertically, inner arcs horizontally.
   var LOBE_MAX = Math.sqrt(2 * Math.pow(Math.sin(Math.PI / 3), 3) * Math.cos(Math.PI / 3));
   function lobePoint(phi) {
     var r = Math.sqrt(Math.max(0, Math.sin(2 * phi)));
@@ -150,7 +322,6 @@
   var UNIT = (function () {
     var outer = [], inner = [], k, m = 300;
     for (k = 0; k <= m; k++) {
-      // dense near the centre, where r changes fastest
       var s = 1 - Math.cos(Math.PI / 2 * k / m);
       outer.push(lobePoint(Math.PI / 2 - (Math.PI / 4) * s));
       inner.push(lobePoint((Math.PI / 4) * (1 - s)));
@@ -158,24 +329,24 @@
     return [outer, inner];
   })();
 
-  function box(el, fw, fh) {
-    var r = el && el.getBoundingClientRect();
-    return r && r.width > 0 && r.height > 0 ? [r.width, r.height] : [fw, fh];
-  }
-
-  // The loop sizes come from the static SVG boxes, which CSS sizes.
-  function buildInfinity() {
-    var rb = box(lobeR, Math.min(2 * amp, W - cx - 24), Math.min(amp, W - cx - 24));
-    var lb = box(lobeL, Math.min(2 * amp, cx - 10), Math.min(amp, cx - 10));
+  function buildInfinity(rb, lb) {
     function place(pts, sx, sy) {
       return pts.map(function (p) { return [cx + sx * p[0], cy + sy * p[1]]; });
     }
-    inf = {
-      AL: resample(place(UNIT[0], -lb[0], lb[1]).reverse(), N),  // tip -> centre, rising
-      AR: resample(place(UNIT[0], rb[0], -rb[1]), N),            // centre -> tip
-      BR: resample(place(UNIT[1], rb[0], -rb[1]), N),            // tip -> centre, heading left
-      BL: resample(place(UNIT[1], -lb[0], lb[1]).reverse(), N)   // centre -> tip, heading left
-    };
+    return [
+      resample(place(UNIT[0], -lb[0], lb[1]).reverse(), N),
+      resample(place(UNIT[0], rb[0], -rb[1]), N),
+      resample(place(UNIT[1], rb[0], -rb[1]), N),
+      resample(place(UNIT[1], -lb[0], lb[1]).reverse(), N)
+    ];
+  }
+
+  function readColors() {
+    var cs = getComputedStyle(root);
+    colors.ink = cs.getPropertyValue("--ink").trim() || colors.ink;
+    colors.signal = cs.getPropertyValue("--signal").trim() || colors.signal;
+    colors.paper = cs.getPropertyValue("--paper").trim() || colors.paper;
+    colors.ghost = parseFloat(cs.getPropertyValue("--ghost")) || colors.ghost;
   }
 
   function measure() {
@@ -191,212 +362,213 @@
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    buildInfinity();
+
+    var rb = box(lobeR, Math.min(2 * amp, W - cx - 24), Math.min(amp, W - cx - 24));
+    var lb = box(lobeL, Math.min(2 * amp, cx - 10), Math.min(amp, cx - 10));
+    sCache.key = "";
+    spCache.tm = -1;
+    boxes = { r: rb, l: lb };
+    shapes.bell = buildBell();
+    shapes.smileIn = buildSmile(-1);   // turns like the bell
+    shapes.smileOut = buildSmile(1);   // turns like the spiral
+    shapes.infinity = buildInfinity(rb, lb);
     trail.length = 0;
   }
 
-  function py(p) {
-    return cy + amp - 2 * amp * p;
+  // --- the timeline ------------------------------------------------------
+
+  function stepAt(t) {
+    for (var i = 0; i < steps.length; i++) if (t < steps[i].start + steps[i].dur) return i;
+    return steps.length - 1;
   }
 
-  // Width of the S at loop time t, in svg units. While the shape is open the
-  // S is only a blend target. It relaxes as it opens, so the steep S's sharp
-  // shoulders don't carry into the loops, and is wide again for the closing.
+  // Width of the S: steepens while it holds, relaxes as it opens into the
+  // bell (so its sharp shoulders don't carry over), and is wide again at the
+  // end of the loop.
   function widthAt(t) {
-    if (t < T1) return S0 * Math.pow(SMIN / S0, steepEase(t / T1));
-    if (t < T2) return SMIN * Math.pow(S0 / SMIN, 0.6 * smoother((t - T1) / T_OPEN));
+    var st = steps[stepAt(t)], p = (t - st.start) / st.dur;
+    if (st.from === "S" && !st.to) return S0 * Math.pow(SMIN / S0, steepEase(p));
+    if (st.from === "S") return SMIN * Math.pow(S0 / SMIN, 0.6 * smoother(p));
     return S0;
   }
 
-  // The S of width s as the same four strands, so it can be blended with the
-  // infinity point by point. On screen, B lies exactly on A. Off screen, past
-  // each edge, A runs on, turns back in a wide hairpin and returns as B, which
-  // bends back onto the S. That turn becomes the tip of each loop, so the
-  // shape stays smooth at every moment of the blend. The left side is the
-  // right side turned half a circle about the fixed point, as the S is.
-  var sAL = [], sAR = [], sBR = [], sBL = [];
-  function buildS(s) {
-    var sp = Math.max(s * unit, 0.3), m = 320, i, q, x, th;
-    var rho = 0.35 * amp;
-    var xe = W + 20, xe2 = xe + 8 * rho;
-    function yAt(x) { return py(cdf((x - cx) / sp)); }
-    // Unit tangent and inner normal (below the curve, on screen) at x.
-    function frameAt(x) {
-      var h = 0.5, dy = (yAt(x + h) - yAt(x - h)) / (2 * h), l = Math.hypot(1, dy);
-      return [1 / l, dy / l, -dy / l, 1 / l];
-    }
-    var yq = yAt(xe2), F = frameAt(xe2);
-    var ccx = xe2 + rho * F[2], ccy = yq + rho * F[3];
-    function turn(th) {
-      return [ccx + rho * (-F[2] * Math.cos(th) + F[0] * Math.sin(th)),
-              ccy + rho * (-F[3] * Math.cos(th) + F[1] * Math.sin(th))];
-    }
-
-    // A: centre -> past the right edge along the S, then half the turn.
-    dense.length = 0;
-    for (i = 0; i <= m; i++) {
-      q = i / m;
-      x = cx + (xe2 - cx) * q * q;
-      dense.push([x, yAt(x)]);
-    }
-    for (i = 1; i <= 24; i++) dense.push(turn((Math.PI / 2) * i / 24));
-    resample(dense, N, sAR);
-
-    // B: the rest of the turn, then back alongside the S, closing onto it
-    // before the edge, then along the S to the centre.
-    dense.length = 0;
-    for (i = 0; i <= 24; i++) dense.push(turn(Math.PI / 2 + (Math.PI / 2) * i / 24));
-    for (i = 1; i <= 40; i++) {
-      x = xe2 - (xe2 - xe) * i / 40;
-      var w = 0.5 + 0.5 * Math.cos(Math.PI * i / 40), G = frameAt(x);
-      dense.push([x + 2 * rho * w * G[2], yAt(x) + 2 * rho * w * G[3]]);
-    }
-    for (i = m; i >= 0; i--) {
-      q = i / m;
-      x = cx + (xe - cx) * q * q;
-      if (x < xe) dense.push([x, yAt(x)]);
-    }
-    resample(dense, N, sBR);
-
-    // Left side: half a turn about the fixed point, run the other way.
-    for (i = 0; i < N; i++) {
-      var a = sAR[N - 1 - i], b = sBR[N - 1 - i];
-      var pa = sAL[i] || (sAL[i] = [0, 0]), pb = sBL[i] || (sBL[i] = [0, 0]);
-      pa[0] = 2 * cx - a[0]; pa[1] = 2 * cy - a[1];
-      pb[0] = 2 * cx - b[0]; pb[1] = 2 * cy - b[1];
-    }
-    sAL.length = sBL.length = N;
+  // Length of the spiral's arms: it winds up over the first 40% of its hold,
+  // stays wound, and unwinds to a hook over the last 40%.
+  function spiralAt(t) {
+    var st = steps[stepAt(t)];
+    if (st.from !== "spiral" || st.to) return TM_LO;
+    var p = (t - st.start) / st.dur;
+    var w = p < 0.4 ? smoother(p / 0.4) : p > 0.6 ? smoother((1 - p) / 0.4) : 1;
+    return TM_LO + (TM_HI - TM_LO) * w;
   }
 
-  // Blend the S with the infinity by e in [0, 1] into `shape`, a closed path
-  // of 4N points: AL, AR, BR, BL.
-  function blend(e) {
-    var S = [sAL, sAR, sBR, sBL], L = [inf.AL, inf.AR, inf.BR, inf.BL];
-    var k = 0;
+  // Mix two sets of strands by f, into new arrays.
+  function mix(P, Q, f) {
+    if (f <= 0) return P;
+    if (f >= 1) return Q;
+    return P.map(function (strand, k) {
+      return strand.map(function (a, i) {
+        var b = Q[k][i];
+        return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+      });
+    });
+  }
+
+  // While the S or the smile holds, its off-screen left hairpin swaps
+  // direction to suit the next shape.
+  function swapAt(st, t) {
+    return smoother(((t - st.start) / st.dur - 0.3) / 0.4);
+  }
+
+  function strandsOf(name, t) {
+    var st = steps[stepAt(t)], holding = !st.to && st.from === name;
+    if (name === "S") {
+      var w = widthAt(t);
+      if (holding) return mix(buildS(w, 1), buildS(w, -1), swapAt(st, t));
+      return buildS(w, st.from === "S" ? -1 : 1);
+    }
+    if (name === "smile") {
+      if (holding) return mix(shapes.smileIn, shapes.smileOut, swapAt(st, t));
+      return st.from === "smile" ? shapes.smileOut : shapes.smileIn;
+    }
+    if (name === "spiral") return buildSpiral(spiralAt(t));
+    return shapes[name];
+  }
+
+  // Blend two shapes by e into `shape` and measure its length.
+  function blend(P, Q, e) {
+    var k = 0, len = 0, prev = null;
     shape.length = 4 * N;
     for (var p = 0; p < 4; p++) {
       for (var i = 0; i < N; i++) {
-        var a = S[p][i], b = L[p][i];
+        var a = P[p][i], b = Q[p][i];
         var o = shape[k] || (shape[k] = [0, 0]);
         o[0] = a[0] + (b[0] - a[0]) * e;
         o[1] = a[1] + (b[1] - a[1]) * e;
+        if (prev) len += Math.hypot(o[0] - prev[0], o[1] - prev[1]);
+        prev = o;
         k++;
       }
     }
+    pathLen = Math.max(len, 1);
   }
 
-  // Point on the closed shape at parameter v (wraps at 1). The centre, on
-  // the rising strand, is v = 0.25.
-  function at(v) {
-    v -= Math.floor(v);
-    var t = v * 4, part = Math.min(3, Math.floor(t));
+  // Point on a set of strands at parameter u (wraps at 1).
+  function pointOf(S, u) {
+    u -= Math.floor(u);
+    var t = u * 4, part = Math.min(3, Math.floor(t));
+    var f = (t - part) * (N - 1), i = Math.min(N - 2, Math.floor(f));
+    var a = S[part][i], b = S[part][i + 1], g = f - i;
+    return [a[0] + (b[0] - a[0]) * g, a[1] + (b[1] - a[1]) * g];
+  }
+
+  // Point on the closed path at parameter u (wraps at 1).
+  function at(u) {
+    u -= Math.floor(u);
+    var t = u * 4, part = Math.min(3, Math.floor(t));
     var f = (t - part) * (N - 1), i = Math.min(N - 2, Math.floor(f));
     var a = shape[part * N + i], b = shape[part * N + i + 1], g = f - i;
     return [a[0] + (b[0] - a[0]) * g, a[1] + (b[1] - a[1]) * g];
   }
 
-  // Parameter of the point at screen x on the rising strand of the S.
-  function paramForX(x) {
-    var half = x < cx ? sAL : sAR, base = x < cx ? 0 : 0.25;
-    for (var i = 1; i < N; i++) {
-      var x0 = half[i - 1][0], x1 = half[i][0];
-      if ((x >= x0 && x <= x1) || i === N - 1) {
-        var g = x1 === x0 ? 0 : clamp01((x - x0) / (x1 - x0));
-        return base + 0.25 * (i - 1 + g) / (N - 1);
+  function onScreen(p, m) {
+    return p[0] > m && p[0] < W - m && p[1] > m && p[1] < H - m;
+  }
+
+  // --- motion ------------------------------------------------------------
+
+  // Path parameter per pixel differs from strand to strand, so the dot's
+  // speed is kept in pixels and converted where it stands. A strand folded
+  // to a point is crossed at once.
+  function density(u) {
+    var h = 0.002, p1 = at(u - h), p2 = at(u + h);
+    return Math.max(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / (2 * h), 0.02 * pathLen);
+  }
+
+  function moveDot(dt) {
+    var cruise = Math.min(SPEED_MAX, Math.max(SPEED_MIN, SPEED_PER_PX * W));
+    var here = at(v), dens = density(v);
+
+    // Ease through tight turns.
+    var du = 12 / dens;
+    var a = at(v - du), b = at(v + du);
+    var t1x = here[0] - a[0], t1y = here[1] - a[1], t2x = b[0] - here[0], t2y = b[1] - here[1];
+    var turnAngle = Math.abs(Math.atan2(t1x * t2y - t1y * t2x, t1x * t2x + t1y * t2y));
+    var speed = cruise / (1 + TURN_SLOW * turnAngle / 12);
+
+    // Turn back, gently, before leaving the screen. If a morph has carried
+    // the dot off screen, head for the nearer visible part, quickly.
+    if (!onScreen(here, 0)) {
+      var ahead = 0, behind = 0, step = 8 / dens;
+      for (var s = 1; s < 400; s++) {
+        if (!ahead && onScreen(at(v + s * step), 20)) ahead = s;
+        if (!behind && onScreen(at(v - s * step), 20)) behind = s;
+        if (ahead && behind) break;
       }
+      if (ahead || behind) dir = (!behind || (ahead && ahead <= behind)) ? 1 : -1;
+      speed *= 4;
+    } else if (target && !onScreen(pointOf(target, v), 20)) {
+      // A morph is about to carry this part of the path off screen: head
+      // for the fixed point (u = 0.75), the one place every shape keeps.
+      var toPin = 0.75 - v;
+      toPin -= Math.round(toPin);
+      dir = toPin >= 0 ? 1 : -1;
+      speed *= 2.2;
+    } else {
+      var look = (0.45 * Math.abs(spd) * EASE + 24) / dens;
+      if (!onScreen(at(v + dir * look), 14) && onScreen(at(v - dir * look), 14)) dir = -dir;
     }
-    return 0.25;
+
+    spd += (dir * speed - spd) * (1 - Math.exp(-dt / EASE));
+    v += spd * dt / dens;
   }
 
-  // The S-phase dot moves in units of the curve's own width (z), with
-  // momentum: a damped, mean-reverting velocity, so it glides like the dot on
-  // the infinity instead of jittering, and it does not speed up as the curve
-  // steepens. Late in the phase it drifts calmly toward one side (delta near
-  // 0 or 1) as the uncertainty resolves.
-  var zPos = 0, zVel = 0, zSide = 1;
-  var Z_PULL = 0.9, Z_DAMP = 1.8, Z_NOISE = 0.5, Z_END = 1.9;
-  function smoothstep(a, b, x) {
-    var t = clamp01((x - a) / (b - a));
-    return t * t * (3 - 2 * t);
-  }
-
-  function restartLoop() {
-    walk = 0;
-    dot = 0;
-    zPos = 0;
-    zVel = 0;
-    zSide = Math.random() < 0.5 ? -1 : 1;
-    gliding = false;
-    ghosts.length = 0;
-    nextGhost = S0 * GHOST_RATIO;
-  }
+  // --- frame -------------------------------------------------------------
 
   function step(dt) {
     clock += dt;
     tau += dt;
     if (tau >= LOOP) {
-      // The dot is back at the centre and the S is wide again: carry on.
       tau -= LOOP;
-      restartLoop();
+      ghosts.length = 0;
+      nextGhost = S0 * GHOST_RATIO;
     }
-
-    if (tau < T1) {
-      // Smooth glide in curve-width units (see restartLoop), kept on screen.
-      var target = zSide * Z_END * smoothstep(0.35, 1, tau / T1);
-      zVel += (-(zPos - target) * Z_PULL - zVel * Z_DAMP) * dt + Z_NOISE * Math.sqrt(dt) * gauss();
-      zPos += zVel * dt;
-      var lo = (24 - cx) / unit;
-      var hi = (W - 24 - cx) / unit;
-      walk = Math.min(hi, Math.max(lo, zPos * widthAt(tau)));
-      dot = walk;
-
+    var st = steps[stepAt(tau)];
+    if (st.from === "S" && !st.to) {
       var w = widthAt(tau);
       while (w <= nextGhost && nextGhost > SMIN) {
         ghosts.push(nextGhost);
         nextGhost *= GHOST_RATIO;
       }
-    } else if (!gliding) {
-      // Hand the dot from the S to the closed path. It glides from rest,
-      // makes its laps, and arrives at the centre as the loop ends.
-      gliding = true;
-      buildS(SMIN);
-      glideFrom = paramForX(cx + dot * unit);
-      var toCentre = 0.25 - glideFrom;
-      glideBy = LAPS + toCentre - Math.floor(toCentre);
     }
   }
 
   // A full S-curve of width s (svg units), for the fan.
   function curve(s) {
     var sp = Math.max(s * unit, 0.3);
-    var x0 = Math.max(0, cx - 4.2 * sp);
-    var x1 = Math.min(W, cx + 4.2 * sp);
+    var x0 = Math.max(0, cx - 4.2 * sp), x1 = Math.min(W, cx + 4.2 * sp);
     var n = Math.min(220, Math.max(24, Math.ceil((x1 - x0) / 2)));
+    function y(x) { return cy + amp - 2 * amp * cdf((x - cx) / sp); }
     ctx.beginPath();
-    ctx.moveTo(0, py(cdf(-cx / sp)));
-    for (var i = 0; i <= n; i++) {
-      var x = x0 + (x1 - x0) * i / n;
-      ctx.lineTo(x, py(cdf((x - cx) / sp)));
-    }
-    ctx.lineTo(W, py(cdf((W - cx) / sp)));
+    ctx.moveTo(0, y(0));
+    for (var i = 0; i <= n; i++) { var x = x0 + (x1 - x0) * i / n; ctx.lineTo(x, y(x)); }
+    ctx.lineTo(W, y(W));
     ctx.stroke();
   }
 
-  function draw() {
+  function draw(dt) {
     ctx.clearRect(0, 0, W, H);
-    if (!unit || !amp || !inf) return;
+    if (!unit || !amp || !shapes.infinity) return;
 
     var a = Math.min(1, clock / FADE_IN);
-    var e = 0;
-    if (tau >= T1 && tau < T2) e = smoother((tau - T1) / T_OPEN);
-    else if (tau >= T2 && tau < T3) e = 1;
-    else if (tau >= T3) e = 1 - smoother((tau - T3) / T_CLOSE);
+    var st = steps[stepAt(tau)], p = (tau - st.start) / st.dur;
+    var e = st.to ? smoother(p) : 0;
 
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
-    // The fan of earlier curves fades as the S opens.
-    var g = tau < T1 ? 1 : tau < T2 ? Math.pow(1 - e, 1.5) : 0;
+    // The fan belongs to the S: it fades as the S opens into the bell.
+    var g = st.from === "S" ? (st.to ? Math.pow(1 - e, 1.5) : 1) : 0;
     if (g > 0.002 && ghosts.length) {
       ctx.strokeStyle = colors.ink;
       ctx.lineWidth = 1;
@@ -404,43 +576,43 @@
       for (var i = 0; i < ghosts.length; i++) curve(ghosts[i]);
     }
 
-    // The live shape.
-    buildS(widthAt(tau));
-    blend(e);
+    // The live shape, drawn through the midpoints with quadratic segments.
+    var P = strandsOf(st.from, tau), Q = st.to ? strandsOf(st.to, tau) : null;
+    blend(P, Q || P, e);
+    // Where the dot should be heading: the shape now forming, or, late in a
+    // hold, the next one.
+    target = Q;
+    var left = st.start + st.dur - tau, k2 = (stepAt(tau) + 1) % steps.length;
+    if (!Q && left < 2) {
+      var nx = steps[k2];
+      target = strandsOf(nx.to, nx.start + nx.dur - 0.001);
+    }
+    var n4 = shape.length, q0 = shape[n4 - 1], q1 = shape[0];
     ctx.strokeStyle = colors.signal;
     ctx.lineWidth = 1.5;
     ctx.globalAlpha = a;
-    // Drawn through the midpoints with quadratic segments, so it stays smooth.
-    var n4 = shape.length, p0 = shape[n4 - 1], p1 = shape[0];
     ctx.beginPath();
-    ctx.moveTo((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2);
+    ctx.moveTo((q0[0] + q1[0]) / 2, (q0[1] + q1[1]) / 2);
     for (var k = 0; k < n4; k++) {
-      p0 = shape[k];
-      p1 = shape[(k + 1) % n4];
-      ctx.quadraticCurveTo(p0[0], p0[1], (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2);
+      q0 = shape[k];
+      q1 = shape[(k + 1) % n4];
+      ctx.quadraticCurveTo(q0[0], q0[1], (q0[0] + q1[0]) / 2, (q0[1] + q1[1]) / 2);
     }
     ctx.stroke();
 
-    // The dot and a short trace of where it has been.
-    var d;
-    if (gliding) {
-      d = at(glideFrom + glideBy * smoother((tau - T1) / (LOOP - T1)));
-    } else {
-      var sp = Math.max(widthAt(tau) * unit, 0.3);
-      d = [cx + dot * unit, py(cdf(dot * unit / sp))];
-    }
+    // The dot and its trace.
+    moveDot(dt);
+    var d = at(v);
     trail.push(d);
-    if (trail.length > 36) trail.shift();
-
-    ctx.lineWidth = 3;
+    if (trail.length > TRAIL) trail.shift();
+    ctx.lineWidth = 2.5;
     for (var j = 1; j < trail.length; j++) {
-      ctx.globalAlpha = a * 0.3 * (j / trail.length);
+      ctx.globalAlpha = a * 0.45 * (j / trail.length) * (j / trail.length);
       ctx.beginPath();
       ctx.moveTo(trail[j - 1][0], trail[j - 1][1]);
       ctx.lineTo(trail[j][0], trail[j][1]);
       ctx.stroke();
     }
-
     ctx.globalAlpha = a;
     ctx.fillStyle = colors.paper;
     ctx.beginPath();
@@ -457,7 +629,7 @@
     var dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
     last = now;
     step(dt);
-    draw();
+    draw(dt);
     raf = window.requestAnimationFrame(frame);
   }
 
@@ -469,7 +641,11 @@
     measure();
     tau = 0;
     clock = 0;
-    restartLoop();
+    v = 0.25;
+    spd = 0;
+    dir = 1;
+    ghosts.length = 0;
+    nextGhost = S0 * GHOST_RATIO;
     last = 0;
     raf = window.requestAnimationFrame(frame);
   }

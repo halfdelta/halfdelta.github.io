@@ -52,3 +52,29 @@ The owner asked for a loop that turns into something else and comes back, with i
 The infinity crosses itself exactly at the fixed point: half delta is where infinity meets itself. The shape is a lemniscate of Bernoulli turned 45 degrees. It leaves the crossing vertically, like the steep S, and horizontally, along the axis. Its two loops sit in the same quadrants as the S-curves, so the name's quadrant stays clear. Both shapes are four strands, resampled evenly along their length and blended point by point. The centre stays pinned throughout.
 
 Without JavaScript, or with reduced motion, the page shows the fan with the infinity drawn through it.
+
+## v3: five shapes through one point
+
+The owner asked for more shapes, a dot that slides freely, and infinity kept last. v3 is one 45.5-second seamless loop of five shapes. Each one passes through the fixed point, and each morphs into the next over 3.5 seconds.
+
+| Time | Shape | What it is |
+|---|---|---|
+| 0–7 s | **S (delta)** | The S-curve steepens and the faint fan builds. Delta: how much an option moves with its underlying. |
+| 7–10.5 s | S → bell | The fan fades. |
+| 10.5–14.5 s | **Bell (gamma)** | A normal curve standing on the axis, its peak right above the fixed point. Gamma is the slope of delta, and it peaks at the money. |
+| 14.5–18 s | bell → smile | |
+| 18–22 s | **Smile (vega)** | The volatility smile: lowest at the money, rising toward the wings. |
+| 22–25.5 s | smile → spiral | |
+| 25.5–31 s | **Spiral** | The Cornu (Euler) spiral. It winds up, holds, and unwinds. Its arms wind toward the points (½, ½) and (−½, −½): one half, again. |
+| 31–34.5 s | spiral → infinity | |
+| 34.5–39.5 s | **Infinity** | The lemniscate, crossing itself at the fixed point. |
+| 39.5–45.5 s | infinity → S | Unwinds into the wide S, unchanged from v2. This is the seam. |
+
+The dot slides along the whole of each shape at a calm, steady pace. It slows in tight turns and turns back gently before it would leave the screen, and its place on the path carries over from shape to shape. When a coming morph would carry its stretch of path off screen, it heads back toward the fixed point. Only the S keeps a fan of earlier curves.
+
+Two shapes were tried and dropped:
+
+- **A circle (theta, time)** between the bell and the spiral. A circle turns one way all the way round, while the spiral and the infinity turn both ways, so the blend from the circle to the spiral pinched into a cusp.
+- **A Lissajous figure or a rose.** These cross the lower-right quarter, where the name sits.
+
+The volatility smile took the circle's place. It still tells the options story: delta, gamma, vega, then a turn toward something stranger.
