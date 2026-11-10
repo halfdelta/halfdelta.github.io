@@ -12,9 +12,9 @@ The custom domain is not connected yet. When it is, a `CNAME` file containing `h
 
 | File | Purpose |
 |---|---|
-| `index.html` | The page. Real text, with a static SVG drawing that works without JavaScript. |
+| `index.html` | The page. Real text, with a static SVG drawing (the curve fan and the infinity) that works without JavaScript. |
 | `style.css` | Shared styles. Colours, type scale and spacing are CSS custom properties on `:root`, with a dark theme under `prefers-color-scheme`. |
-| `main.js` | Optional animation on a canvas. It does not run when the visitor prefers reduced motion. |
+| `main.js` | Optional animation on a canvas: a 26-second loop in which the S-curve opens into an infinity sign and unwinds back. It does not run when the visitor prefers reduced motion. |
 | `404.html` | The not-found page, in the same style. It uses root-relative paths because Pages serves it at any URL. |
 | `favicon.svg`, `apple-touch-icon.png` | Icons. |
 | `og-image.svg`, `og-image.png` | The link preview image. The PNG is the one linked from the meta tags; the SVG is its source. |

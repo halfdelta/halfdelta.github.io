@@ -39,3 +39,16 @@ A also stays readable when nothing moves. Drawn once as a still fan of curves, i
 - Measured at even odds.
 - Where the odds are even.
 - No line at all, only the name.
+
+## v2: the S becomes infinity
+
+The owner asked for a loop that turns into something else and comes back, with infinity as one option. v2 is one continuous loop with no fade to blank. It lasts 26 seconds.
+
+- **0–10 s:** the S steepens and the fan builds, as in v1. The dot drifts at random.
+- **10–14 s:** the S opens into an infinity sign. Its tails wind into two loops, and a second strand peels off the S and swings down to the horizontal. The fan fades out.
+- **14–20 s:** the infinity holds and the dot glides around it.
+- **20–26 s:** the infinity unwinds into the wide S. The dot arrives back at the fixed point just as the S settles, and the next loop carries on from there.
+
+The infinity crosses itself exactly at the fixed point: half delta is where infinity meets itself. The shape is a lemniscate of Bernoulli turned 45 degrees. It leaves the crossing vertically, like the steep S, and horizontally, along the axis. Its two loops sit in the same quadrants as the S-curves, so the name's quadrant stays clear. Both shapes are four strands, resampled evenly along their length and blended point by point. The centre stays pinned throughout.
+
+Without JavaScript, or with reduced motion, the page shows the fan with the infinity drawn through it.

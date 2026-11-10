@@ -8,8 +8,17 @@
 
   /* Geometry of the chart. The fixed point sits at (--kx, --ky). */
   --kx: 50%;
+  --kx-len: 50vw;  /* the same position as a length, for sizes */
   --ky: 46%;
   --amp: min(30vh, 260px);
+
+  /* The infinity: two loops through the fixed point, one in the upper-right
+     quadrant and one in the lower-left, so the label quadrant stays clear.
+     Widths are capped so the left loop stays on screen on phones. */
+  --lobe-lw: min(calc(2 * var(--amp)), calc(var(--kx-len) - 10px));
+  --lobe-rw: min(calc(2 * var(--amp)), calc(100vw - var(--kx-len) - 24px), calc(var(--lobe-lw) * 1.6));
+  --lobe-lh: min(var(--amp), var(--lobe-lw));
+  --lobe-rh: min(var(--amp), var(--lobe-rw));
 
   /* Type scale and spacing, shared by every page on the site. */
   --text-display: clamp(2rem, 1.35rem + 2.2vw, 3.5rem);
@@ -44,7 +53,7 @@
 }
 
 @media (max-width: 640px) {
-  :root { --kx: 28%; --ky: 44%; }
+  :root { --kx: 28%; --kx-len: 28vw; --ky: 44%; }
 }
 
 /* Base, shared by every page. */
@@ -115,6 +124,33 @@ body {
   stroke-width: 1.5;
 }
 
+/* The static infinity, drawn as two loops that meet at the fixed point. */
+.lobe {
+  position: absolute;
+  overflow: visible;
+}
+
+.lobe-r {
+  left: var(--kx);
+  top: calc(var(--ky) - var(--lobe-rh));
+  width: var(--lobe-rw);
+  height: var(--lobe-rh);
+}
+
+.lobe-l {
+  left: calc(var(--kx) - var(--lobe-lw));
+  top: var(--ky);
+  width: var(--lobe-lw);
+  height: var(--lobe-lh);
+}
+
+.lobe path {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
 .live {
   position: absolute;
   inset: 0;
@@ -123,8 +159,36 @@ body {
   display: none;
 }
 
-.js-live .live { display: block; }
-.js-live .fan { visibility: hidden; }
+.js-live /* The static infinity, drawn as two loops that meet at the fixed point. */
+.lobe {
+  position: absolute;
+  overflow: visible;
+}
+
+.lobe-r {
+  left: var(--kx);
+  top: calc(var(--ky) - var(--lobe-rh));
+  width: var(--lobe-rw);
+  height: var(--lobe-rh);
+}
+
+.lobe-l {
+  left: calc(var(--kx) - var(--lobe-lw));
+  top: var(--ky);
+  width: var(--lobe-lw);
+  height: var(--lobe-lh);
+}
+
+.lobe path {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.live { display: block; }
+.js-live .fan,
+.js-live .lobe { visibility: hidden; }
 
 .point {
   position: absolute;
