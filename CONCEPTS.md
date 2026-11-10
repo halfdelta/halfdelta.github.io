@@ -78,3 +78,26 @@ Two shapes were tried and dropped:
 - **A Lissajous figure or a rose.** These cross the lower-right quarter, where the name sits.
 
 The volatility smile took the circle's place. It still tells the options story: delta, gamma, vega, then a turn toward something stranger.
+
+## v4: three shapes, drawn out of the point
+
+The owner kept three shapes (the S, the spiral and the infinity), asked for a different kind of transition, and asked for more path tracing, like the fan in v1. v4 is one 32-second seamless loop.
+
+| Time | What happens |
+|---|---|
+| 0–8 s | **S (delta)** steepens. Each width it passes leaves a faint copy, building the fan from v1. |
+| 8–11.5 s | The S is left in place and fades. The **spiral** is drawn out of the fixed point. |
+| 11.5–18.5 s | **Spiral** tightens and grows. Earlier windings stay behind as afterimages. |
+| 18.5–22 s | The spiral and its afterimages fade. The **infinity** is drawn out of the point. |
+| 22–28 s | **Infinity**: the loops breathe outward, leaving a fan of smaller loops. |
+| 28–32 s | The infinity fades. The wide **S** is drawn out of the point, and the loop goes on. |
+
+**The transition.** Before each change, the dot glides home to the fixed point and comes to rest there. The old shape stays where it is and fades to a ghost, with its fan. The new shape is drawn outward from the point along all its strands at once. The dot rides the tip of one strand, as the pen, at about its usual speed, and then carries on along the new shape. Nothing moves except the drawing and the dot.
+
+Three options were prototyped:
+
+- **Draw out of the point while the old shape fades (chosen).** It is the calmest of the three: one motion at a time, and the old shape becomes part of the trace instead of being taken away.
+- **Draw out of the point while the old shape winds back into it.** Two motions in opposite directions through one point read as busy, and a steep S winding back leaves a brief straight chord.
+- **The dot draws the whole new shape in one stroke.** At a calm speed an infinity takes about 13 seconds to draw, so the pen would have to hurry.
+
+**The trace.** Each phase leaves faint ink-coloured copies: about 20 for the S, 9 for the spiral and 8 for the infinity. They fade over five seconds once their phase ends. The dot's trail is longer, about 1.6 seconds, with a soft wide stroke under a fine one and a faint halo on the dot.
