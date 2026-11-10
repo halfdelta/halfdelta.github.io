@@ -59,7 +59,6 @@
   var FADE_IN = 1.2;   // first appearance only
 
   var GHOST_RATIO = 0.86; // keep a faint copy each time the width shrinks by this factor
-  var SMOOTH = 0.16;      // seconds; the dot eases toward the random walk
 
   // Curve width at the start and the narrowest it gets, in svg units
   // (1 unit = 1/1000 of the page width). It never reaches a step.
@@ -309,9 +308,24 @@
     return 0.25;
   }
 
+  // The S-phase dot moves in units of the curve's own width (z), with
+  // momentum: a damped, mean-reverting velocity, so it glides like the dot on
+  // the infinity instead of jittering, and it does not speed up as the curve
+  // steepens. Late in the phase it drifts calmly toward one side (delta near
+  // 0 or 1) as the uncertainty resolves.
+  var zPos = 0, zVel = 0, zSide = 1;
+  var Z_PULL = 0.9, Z_DAMP = 1.8, Z_NOISE = 0.5, Z_END = 1.9;
+  function smoothstep(a, b, x) {
+    var t = clamp01((x - a) / (b - a));
+    return t * t * (3 - 2 * t);
+  }
+
   function restartLoop() {
     walk = 0;
     dot = 0;
+    zPos = 0;
+    zVel = 0;
+    zSide = Math.random() < 0.5 ? -1 : 1;
     gliding = false;
     ghosts.length = 0;
     nextGhost = S0 * GHOST_RATIO;
@@ -327,14 +341,14 @@
     }
 
     if (tau < T1) {
-      // Random walk with reflection so the dot stays on screen.
-      var vol = 0.2 * S0 / Math.sqrt(T1);
-      walk += vol * Math.sqrt(dt) * gauss();
+      // Smooth glide in curve-width units (see restartLoop), kept on screen.
+      var target = zSide * Z_END * smoothstep(0.35, 1, tau / T1);
+      zVel += (-(zPos - target) * Z_PULL - zVel * Z_DAMP) * dt + Z_NOISE * Math.sqrt(dt) * gauss();
+      zPos += zVel * dt;
       var lo = (24 - cx) / unit;
       var hi = (W - 24 - cx) / unit;
-      if (walk < lo) walk = 2 * lo - walk;
-      if (walk > hi) walk = 2 * hi - walk;
-      dot += (walk - dot) * (1 - Math.exp(-dt / SMOOTH));
+      walk = Math.min(hi, Math.max(lo, zPos * widthAt(tau)));
+      dot = walk;
 
       var w = widthAt(tau);
       while (w <= nextGhost && nextGhost > SMIN) {
