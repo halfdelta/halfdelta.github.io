@@ -6,7 +6,7 @@ The placeholder website for Half Delta: one page, a 404 page, and nothing else y
 
 GitHub Pages serves the files at the repository root as they are. There is no build step, no framework and no package manager. `.nojekyll` tells Pages to skip Jekyll and serve the files unchanged.
 
-The custom domain is not connected yet. When it is, a `CNAME` file containing `halfdelta.com` will be added at the root.
+The custom domain is set by the `CNAME` file at the root (`halfdelta.com`). DNS is at Namecheap: four A records for the apex pointing at GitHub Pages, and `www` as a CNAME to `halfdelta.github.io`.
 
 ## Files
 
@@ -19,7 +19,7 @@ The custom domain is not connected yet. When it is, a `CNAME` file containing `h
 | `favicon.svg`, `apple-touch-icon.png` | Icons. |
 | `og-image.svg`, `og-image.png` | The link preview image. The PNG is the one linked from the meta tags; the SVG is its source. |
 | `robots.txt` | Allows all crawlers. |
-| `CONCEPTS.md` | Design notes: the concepts considered and the one chosen. |
+| `CNAME` | The custom domain for GitHub Pages. |
 
 ## Rules for this site
 
