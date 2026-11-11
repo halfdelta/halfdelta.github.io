@@ -159,36 +159,47 @@ body {
   display: none;
 }
 
-.js-live /* The static infinity, drawn as two loops that meet at the fixed point. */
-.lobe {
+.js-live .live { display: block; }
+.js-live .still,
+.js-live .fan,
+.js-live .lobe { visibility: hidden; }
+
+/* The static city (no JavaScript). The spire's tip is at (--kx, --ky); the
+   drawing has a fixed size and is cropped by the field. */
+.still {
+  --city-w: 1200px;
   position: absolute;
+  left: calc(var(--kx) - var(--city-w) / 2);
+  top: calc(var(--ky) - var(--city-w) * 0.3125);
+  width: var(--city-w);
+  height: calc(var(--city-w) * 2 / 3);
   overflow: visible;
 }
 
-.lobe-r {
-  left: var(--kx);
-  top: calc(var(--ky) - var(--lobe-rh));
-  width: var(--lobe-rw);
-  height: var(--lobe-rh);
+@media (max-width: 640px) {
+  .still { --city-w: 760px; }
 }
 
-.lobe-l {
-  left: calc(var(--kx) - var(--lobe-lw));
-  top: var(--ky);
-  width: var(--lobe-lw);
-  height: var(--lobe-lh);
-}
-
-.lobe path {
-  fill: none;
-  stroke: var(--signal);
-  stroke-width: 1.5;
+.still path {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-opacity: 0.6;
+  stroke-width: 1;
+  stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
-.live { display: block; }
-.js-live .fan,
-.js-live .lobe { visibility: hidden; }
+.still .f { fill: var(--ink); fill-opacity: 0.1; stroke: none; }
+.still .g { fill: none; stroke-opacity: 0.14; }
+.still .w { fill: none; stroke-opacity: 0.3; }
+
+.still .t {
+  fill: none;
+  stroke: var(--signal);
+  stroke-opacity: 0.75;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
 
 .point {
   position: absolute;

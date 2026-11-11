@@ -12,9 +12,9 @@ The custom domain is set by the `CNAME` file at the root (`halfdelta.com`). DNS 
 
 | File | Purpose |
 |---|---|
-| `index.html` | The page. Real text, with a static SVG drawing (the curve fan and the infinity) that works without JavaScript. |
+| `index.html` | The page. Real text, with a static SVG sketch of the city (wireframe towers, the shore, a few traffic trails) that works without JavaScript. |
 | `style.css` | Shared styles. Colours, type scale and spacing are CSS custom properties on `:root`, with a dark theme under `prefers-color-scheme`. |
-| `main.js` | Optional animation on a canvas: a 32-second loop of three shapes through one fixed point (S-curve, Cornu spiral, infinity). Each new shape is drawn out of the point while the last one fades, and each phase leaves faint afterimages. The timeline is the `SEQUENCE` table at the top of the file. It does not run when the visitor prefers reduced motion. |
+| `main.js` | Optional animation on a canvas: an axonometric city, generated fresh on every visit, with towers drawn back to front, a calm bay under the name, and a spire whose tip is the fixed point. Blue traffic weaves between and behind the towers on lanes at several altitudes and lands on roof rings; in dark mode it is night and the windows glow. The camera drifts slowly. The design is described in the header comment. It does not run when the visitor prefers reduced motion (one still frame instead). |
 | `404.html` | The not-found page, in the same style. It uses root-relative paths because Pages serves it at any URL. |
 | `favicon.svg`, `apple-touch-icon.png` | Icons. |
 | `og-image.svg`, `og-image.png` | The link preview image. The PNG is the one linked from the meta tags; the SVG is its source. |
