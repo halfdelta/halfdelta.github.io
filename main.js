@@ -1019,20 +1019,36 @@
     else if (mq.addListener) mq.addListener(fn);
   }
 
+  // Start only once the page has loaded: WebKit can run a deferred script
+  // before the stylesheet applies, and measuring then gives the unstyled
+  // layout (the canvas sized to it, the colours unset). A ResizeObserver on
+  // the field re-measures whenever its size really changes.
+  var booted = false;
+  function boot() {
+    if (booted) return;
+    booted = true;
+    readColors();
+    start();
+  }
+  function remeasure() {
+    if (!booted) return;
+    var f = field.getBoundingClientRect();
+    if (Math.abs(f.width - W) > 1 || Math.abs(f.height - H) > 1) { stop(); start(); }
+  }
+
   build();
-  readColors();
-  listen(reduce, function () { stop(); start(); });
-  listen(dark, function () { readColors(); if (reduce.matches) start(); else restartJob(); });
+  listen(reduce, function () { stop(); if (booted) start(); });
+  listen(dark, function () { if (!booted) return; readColors(); if (reduce.matches) start(); else restartJob(); });
   document.addEventListener("visibilitychange", function () {
-    if (document.hidden) stop(); else start();
+    if (document.hidden) stop(); else if (booted) start();
   });
   var resizeTimer = 0;
-  window.addEventListener("resize", function () {
+  function onResize() {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () {
-      var f = field.getBoundingClientRect();
-      if (Math.abs(f.width - W) > 1 || Math.abs(f.height - H) > 1) { stop(); start(); }
-    }, 120);
-  });
-  start();
+    resizeTimer = setTimeout(remeasure, 120);
+  }
+  window.addEventListener("resize", onResize);
+  if (window.ResizeObserver) new window.ResizeObserver(onResize).observe(field);
+  if (document.readyState === "complete") boot();
+  else window.addEventListener("load", boot);
 })();
