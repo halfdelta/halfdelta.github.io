@@ -1,0 +1,271 @@
+/* Notes section. Loaded after /style.css and built on its custom properties.
+   The only additions are the three status colours, used for red / amber / green. */
+
+:root {
+  --red: #B3372E;
+  --amber: #946200;
+  --green: #2B7A4B;
+  --tint-red: rgba(179, 55, 46, 0.12);
+  --tint-amber: rgba(184, 120, 0, 0.14);
+  --tint-green: rgba(43, 122, 75, 0.14);
+  --tint-ink: rgba(22, 32, 44, 0.05);
+  --prose: 38rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --red: #F08A80;
+    --amber: #E3B04B;
+    --green: #6FCB93;
+    --tint-red: rgba(240, 138, 128, 0.16);
+    --tint-amber: rgba(227, 176, 75, 0.16);
+    --tint-green: rgba(111, 203, 147, 0.16);
+    --tint-ink: rgba(220, 226, 233, 0.06);
+  }
+}
+
+.page {
+  max-width: calc(var(--prose) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: var(--space-4) var(--gutter) calc(var(--space-5) * 2);
+}
+
+.top {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  font-size: var(--text-small);
+  color: var(--muted);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--space-5);
+}
+
+.top a { color: var(--ink); text-decoration: none; }
+.top a:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+.top .sep { opacity: 0.5; }
+
+.page a {
+  color: var(--signal);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.page a:hover { text-decoration-thickness: 2px; }
+.page a:focus-visible,
+.calc button:focus-visible,
+.calc input:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.top a { color: var(--ink); }
+
+.page h1 {
+  margin: 0 0 var(--space-3);
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 1.4rem + 2vw, 2.8rem);
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  overflow-wrap: break-word;
+}
+
+.dek {
+  margin: 0 0 var(--space-2);
+  font-size: 1.125rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.byline {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+.essay {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  hyphens: manual;
+}
+
+.essay h2 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.essay h3 {
+  margin: var(--space-4) 0 var(--space-1);
+  font-family: var(--sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.essay p,
+.essay ul,
+.essay ol,
+.essay dl { margin: 0 0 var(--space-3); }
+
+.essay ul,
+.essay ol { padding-left: 1.3rem; }
+.essay li { margin-bottom: var(--space-1); }
+
+.essay code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.eq {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  background: var(--tint-ink);
+  border-radius: 4px;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.eq math { font-size: 1.15em; }
+.eq .cap {
+  margin-top: var(--space-2);
+  font-family: var(--sans);
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: left;
+}
+
+dl.terms { font-family: var(--sans); font-size: 0.95rem; line-height: 1.45; }
+dl.terms dt { font-weight: 600; margin-top: var(--space-2); }
+dl.terms dd { margin: 0 0 0 var(--space-3); color: var(--muted); }
+
+.illus {
+  margin: var(--space-4) 0 var(--space-1);
+  font-family: var(--sans);
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+.tbl {
+  margin: 0 0 var(--space-4);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tbl table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 20rem;
+  font-family: var(--sans);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.tbl th,
+.tbl td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tbl th { font-weight: 600; border-bottom-color: var(--ink); }
+.tbl .n { text-align: right; white-space: nowrap; }
+.tbl .r { background: var(--tint-red); }
+.tbl .a { background: var(--tint-amber); }
+.tbl .g { background: var(--tint-green); }
+
+.chip {
+  display: inline-block;
+  padding: 0 0.45em;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-family: var(--sans);
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.chip.red { color: var(--red); background: var(--tint-red); }
+.chip.amber { color: var(--amber); background: var(--tint-amber); }
+.chip.green { color: var(--green); background: var(--tint-green); }
+.chip.grey { color: var(--muted); }
+
+.note {
+  margin: var(--space-4) 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--signal);
+  font-size: 0.98rem;
+}
+
+.refs { font-size: 0.95rem; }
+.refs li { margin-bottom: var(--space-2); }
+
+.foot {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+/* The index. */
+.entries { list-style: none; margin: 0; padding: 0; }
+.entries li { padding: var(--space-3) 0; border-top: 1px solid var(--rule); }
+.entries li:last-child { border-bottom: 1px solid var(--rule); }
+.entries time { display: block; font-size: var(--text-small); color: var(--muted); }
+.entries a { font-family: var(--serif); font-size: 1.35rem; line-height: 1.25; }
+.entries p { margin: var(--space-1) 0 0; color: var(--muted); line-height: var(--leading-body); }
+
+/* The calculator: enhancement only. Without JavaScript the fallback line shows. */
+.calc {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--sans);
+}
+.calc h3 { margin-top: 0; }
+.calc-grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin: var(--space-3) 0; }
+.calc label { display: flex; justify-content: space-between; gap: var(--space-2); font-size: var(--text-small); font-weight: 600; }
+.calc label .v { font-variant-numeric: tabular-nums; font-weight: 400; }
+.calc input[type="range"] { width: 100%; accent-color: var(--signal); margin: var(--space-1) 0 0; }
+.calc .hint { font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
+.presets { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.presets button {
+  font: inherit; font-size: var(--text-small);
+  padding: 0.35rem 0.7rem; color: var(--ink); background: transparent;
+  border: 1px solid var(--rule); border-radius: 3px; cursor: pointer;
+}
+.presets button:hover { border-color: var(--ink); }
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: var(--space-2); }
+.readout .cell { padding: var(--space-2); border: 1px solid var(--rule); border-radius: 3px; }
+.readout .cell.red { background: var(--tint-red); }
+.readout .cell.amber { background: var(--tint-amber); }
+.readout .cell.green { background: var(--tint-green); }
+.readout .k { font-size: 0.75rem; color: var(--muted); }
+.readout .val { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.verdict-line { margin: var(--space-2) 0 var(--space-3); font-size: var(--text-small); min-height: 2.8em; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { font-size: 11px; fill: var(--muted); font-family: var(--sans); }
+.chart .band-r { fill: var(--tint-red); }
+.chart .band-a { fill: var(--tint-amber); }
+.chart .band-g { fill: var(--tint-green); }
+.chart .grid { stroke: var(--rule); stroke-width: 1; }
+.chart .bar { stroke: var(--ink); stroke-opacity: 0.45; stroke-dasharray: 4 4; }
+.chart .bar-label { fill: var(--ink); }
+.chart .curve { fill: none; stroke: var(--signal); stroke-width: 2.4; stroke-linejoin: round; }
+.chart .dot { fill: var(--signal); stroke: var(--paper); stroke-width: 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+@media (max-width: 420px) {
+  .essay { font-size: 1rem; }
+  .eq { padding: var(--space-2); }
+}
