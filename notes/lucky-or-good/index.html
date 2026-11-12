@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lucky or good? Testing a tuned strategy for luck – Half Delta</title>
+  <meta name="description" content="If you try many settings and keep the best one, its result is inflated. How we measure by how much, using an effective sample size, the Deflated Sharpe Ratio and a placebo, and how we turn it into a decision.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ECEEEA" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E151E" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://halfdelta.com/notes/lucky-or-good/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Half Delta">
+  <meta property="og:title" content="Lucky or good? Testing a tuned strategy for luck">
+  <meta property="og:description" content="If you try many settings and keep the best one, its result is inflated. How we measure by how much, and how we turn the answer into a decision.">
+  <meta property="og:url" content="https://halfdelta.com/notes/lucky-or-good/">
+  <meta property="og:image" content="https://halfdelta.com/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A family of S-shaped curves that all pass through one point, labelled Half Delta.">
+  <meta property="article:published_time" content="2026-11-12">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Lucky or good? Testing a tuned strategy for luck">
+  <meta name="twitter:description" content="If you try many settings and keep the best one, its result is inflated. How we measure by how much, and how we turn the answer into a decision.">
+  <meta name="twitter:image" content="https://halfdelta.com/og-image.png">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/notes/notes.css">
+  <script src="/notes/lucky-or-good/dsr.js" defer></script>
+</head>
+<body>
+  <main class="page">
+    <nav class="top" aria-label="Site"><a href="/">Half Delta</a><span class="sep" aria-hidden="true">/</span><a href="/notes/">Notes</a></nav>
+    <article>
+      <header>
+        <h1>Lucky or good? Testing a tuned strategy for luck</h1>
+        <p class="dek">If you try many settings and keep the best one, its result is inflated. This note shows how we measure by how much, and how we turn the answer into a decision.</p>
+        <p class="byline"><time datetime="2026-11-12">12 November 2026</time> · Half Delta</p>
+      </header>
+
+      <div class="essay">
+        <h2>The problem: the best of many</h2>
+        <p>Have 100 people each flip a fair coin 20 times. On average each gets 10 heads, but the best of the hundred will usually get 15 or 16. That is not skill. It is what the maximum of 100 random results looks like. If you reported only the winner, 15 heads would look impressive.</p>
+        <p>Tuning a trading strategy does the same thing. A strategy has settings: thresholds, holding times, exit rules. We replay recorded data once per candidate setting and keep the one that made the most money. The winner's result is the <em>maximum</em> of many noisy results, so it is biased upwards. Some of its good week came from noise that happened to line up with its thresholds, and that part will not repeat.</p>
+        <p>Before a tuned version replaces the current one, we want to ask whether the winner's result is too good to be luck, given how many settings we tried. This note describes the tests we use and how they combine into one decision. Every number here is illustrative, chosen to show how the arithmetic behaves. None is a result of ours.</p>
+
+        <h3>What counts as a trade, and a return</h3>
+        <p>Each replay produces a list of trades with entry and exit times, prices, fees and slippage. We keep a trade only if it falls inside the test period and does not overlap a stretch where our data had a gap, because during a gap the replay did not see the market and the outcome cannot be trusted. Each remaining trade becomes a <em>return</em>: its net profit divided by the stake. The <b>Sharpe ratio</b> is the average return divided by its standard deviation:</p>
+        <div class="eq">
+          <math display="block"><mover accent="true"><mi>SR</mi><mo>^</mo></mover><mo>=</mo><mfrac><mover accent="true"><mi>r</mi><mo>&#x203E;</mo></mover><msub><mi>s</mi><mi>r</mi></msub></mfrac></math>
+          <div class="cap">The per-trade Sharpe ratio. The standard deviation uses n − 1, and nothing is annualised.</div>
+        </div>
+        <p>Read it as average profit measured in units of wobble. A per-trade Sharpe of 0.20 means the average trade earns a fifth of a typical trade's swing. That sounds small but is a solid edge per trade: a few hundred trades at 0.20 rarely end up negative overall, while a few hundred at 0.02 often do.</p>
+
+        <h2>Step one: how many independent trades do we really have?</h2>
+        <p>A week might give 280 trades, but they are not 280 independent pieces of evidence. Trades on the same day share a market mood. On a hot day most entries win and on a dead day most lose. If that day effect is strong, 280 trades carry closer to a handful of days' worth of information than 280 flips' worth. Every test that depends on sample size has to use the honest count.</p>
+        <p>The <b>intraclass correlation</b> ρ measures how much of the spread in returns is explained by which day a trade was on. We use the one-way ANOVA estimate:</p>
+        <div class="eq">
+          <math display="block"><mi>ρ</mi><mo>=</mo><mfrac><mrow><mtext>MSB</mtext><mo>&#x2212;</mo><mtext>MSW</mtext></mrow><mrow><mtext>MSB</mtext><mo>+</mo><mo>(</mo><msub><mi>n</mi><mn>0</mn></msub><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mtext>&#x2009;MSW</mtext></mrow></mfrac><mspace width="2em"></mspace><msub><mi>n</mi><mn>0</mn></msub><mo>=</mo><mfrac><mrow><mi>n</mi><mo>&#x2212;</mo><munder><mo>&#x2211;</mo><mi>i</mi></munder><msubsup><mi>d</mi><mi>i</mi><mn>2</mn></msubsup><mo>/</mo><mi>n</mi></mrow><mrow><mi>k</mi><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac></math>
+        </div>
+        <dl class="terms">
+          <dt>MSB</dt><dd>Between-day mean square: how far each day's average return sits from the overall average, weighted by trades.</dd>
+          <dt>MSW</dt><dd>Within-day mean square: how much trades scatter around their own day's average.</dd>
+          <dt>k, d<sub>i</sub>, n</dt><dd>The number of days, the number of trades on day i, and the total number of trades.</dd>
+          <dt>ρ</dt><dd>0 means days do not matter and every trade is independent. 1 means trades on one day behave like a single trade. Negative estimates are set to 0, written ρ<sup>+</sup>.</dd>
+        </dl>
+        <p>Then Kish's design effect (Kish, 1965) turns ρ into an <b>effective sample size</b>. When days are uneven, one busy day dominates, so we use Kish's cluster size m rather than the plain average day size:</p>
+        <div class="eq">
+          <math display="block"><mi>m</mi><mo>=</mo><mfrac><mrow><munder><mo>&#x2211;</mo><mi>i</mi></munder><msubsup><mi>d</mi><mi>i</mi><mn>2</mn></msubsup></mrow><mi>n</mi></mfrac><mspace width="2.5em"></mspace><msub><mi>N</mi><mtext>eff</mtext></msub><mo>=</mo><mfrac><mi>n</mi><mrow><mn>1</mn><mo>+</mo><mo>(</mo><mi>m</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mtext>&#x2009;</mtext><msup><mi>ρ</mi><mo>+</mo></msup></mrow></mfrac></math>
+          <div class="cap">With equal days, m is just n divided by the number of days. The more uneven the days, the larger m, and the harder the same ρ bites.</div>
+        </div>
+        <p class="illus">Illustrative: 280 trades over 7 days. Effective trades N<sub>eff</sub> at different day effects ρ.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Day sizes</th><th class="n">m</th><th class="n">ρ = 0</th><th class="n">0.02</th><th class="n">0.05</th><th class="n">0.10</th></tr></thead>
+          <tbody>
+            <tr><td>Even: 40 a day</td><td class="n">40</td><td class="n">280</td><td class="n">157</td><td class="n">95</td><td class="n">57</td></tr>
+            <tr><td>Lumpy: six days of 10, one of 220</td><td class="n">175</td><td class="n">280</td><td class="n">63</td><td class="n">29</td><td class="n">15</td></tr>
+          </tbody>
+        </table></div>
+        <p>Even a small day effect (ρ = 0.05) cuts 280 trades to about 95 effective ones, and to 29 if one day dominates. This N<sub>eff</sub> is the sample size we feed into the luck test below, and we flag any result that rests on too few effective trades. We also report an interval for ρ, found by resampling whole days, so that the uncertainty in ρ itself stays visible when there are only a few days.</p>
+
+        <h2>Step two: the Deflated Sharpe Ratio</h2>
+        <p>The <b>Deflated Sharpe Ratio</b> (DSR), introduced by Bailey and López de Prado (2014), corrects a winner's Sharpe ratio for the selection effect. It has two steps.</p>
+        <h3>How high would luck alone reach?</h3>
+        <p>Suppose none of the settings had any real edge, so every true Sharpe is 0 and every measured Sharpe is noise. Extreme-value theory gives a good estimate of the largest Sharpe you would expect to see among N such settings. We call it the luck bar:</p>
+        <div class="eq">
+          <math display="block"><msub><mi>SR</mi><mn>0</mn></msub><mo>=</mo><msqrt><mi>V</mi></msqrt><mo>&#x00B7;</mo><mrow><mo>[</mo><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>γ</mi><mi>E</mi></msub><mo>)</mo><mtext>&#x2009;</mtext><msup><mi>Φ</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><mo>)</mo></mrow><mo>+</mo><msub><mi>γ</mi><mi>E</mi></msub><mtext>&#x2009;</mtext><msup><mi>Φ</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><mn>1</mn><mrow><mi>N</mi><mi>e</mi></mrow></mfrac><mo>)</mo></mrow><mo>]</mo></mrow></math>
+          <div class="cap">The expected maximum Sharpe ratio of N unskilled trials.</div>
+        </div>
+        <dl class="terms">
+          <dt>V</dt><dd>The variance of the Sharpe ratios across all the settings tried. If settings produce very different Sharpes, luck can push the best one higher, so the bar rises.</dd>
+          <dt>N</dt><dd>The number of independent settings tried. We do not know this exactly; more on that below.</dd>
+          <dt>Φ<sup>&#x2212;1</sup></dt><dd>The inverse of the standard normal distribution function. For example, Φ<sup>&#x2212;1</sup>(0.99) is about 2.33: the top 1 % of a normal curve starts 2.33 standard deviations up.</dd>
+          <dt>γ<sub>E</sub></dt><dd>The Euler–Mascheroni constant, about 0.5772, which appears in the exact form of the expected maximum.</dd>
+          <dt>e</dt><dd>Euler's number, about 2.718.</dd>
+        </dl>
+        <p>The bar grows with the spread of the trial Sharpes and, more slowly, with the number of settings:</p>
+        <p class="illus">Computed from the formula: the luck bar SR<sub>0</sub> for a given spread √V and number of settings N.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Spread of trial Sharpes (√V)</th><th class="n">N = 15</th><th class="n">31</th><th class="n">50</th><th class="n">100</th><th class="n">300</th></tr></thead>
+          <tbody>
+            <tr><td>0.03 (settings behave alike)</td><td class="n">0.053</td><td class="n">0.063</td><td class="n">0.068</td><td class="n">0.076</td><td class="n">0.087</td></tr>
+            <tr><td>0.05</td><td class="n">0.089</td><td class="n">0.104</td><td class="n">0.114</td><td class="n">0.127</td><td class="n">0.145</td></tr>
+            <tr><td>0.08 (settings differ a lot)</td><td class="n">0.142</td><td class="n">0.167</td><td class="n">0.182</td><td class="n">0.202</td><td class="n">0.232</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>How sure are we that the winner clears the bar?</h3>
+        <p>The winner's measured Sharpe is itself noisy. The DSR is the probability that its <em>true</em> Sharpe is above the luck bar, given the effective number of trades and how oddly shaped the returns are:</p>
+        <div class="eq">
+          <math display="block"><mtext>DSR</mtext><mo>=</mo><mi>Φ</mi><mrow><mo>(</mo><mfrac><mrow><mo>(</mo><mover accent="true"><mi>SR</mi><mo>^</mo></mover><mo>&#x2212;</mo><msub><mi>SR</mi><mn>0</mn></msub><mo>)</mo><mtext>&#x2009;</mtext><msqrt><mrow><mi>T</mi><mo>&#x2212;</mo><mn>1</mn></mrow></msqrt></mrow><msqrt><mrow><mn>1</mn><mo>&#x2212;</mo><msub><mi>γ</mi><mn>3</mn></msub><mtext>&#x2009;</mtext><mover accent="true"><mi>SR</mi><mo>^</mo></mover><mo>+</mo><mfrac><mrow><msub><mi>γ</mi><mn>4</mn></msub><mo>&#x2212;</mo><mn>1</mn></mrow><mn>4</mn></mfrac><mtext>&#x2009;</mtext><msup><mover accent="true"><mi>SR</mi><mo>^</mo></mover><mn>2</mn></msup></mrow></msqrt></mfrac><mo>)</mo></mrow></math>
+          <div class="cap">Φ turns a z-score into a probability between 0 and 1. A DSR of 0.95 means roughly 95 % confidence that the edge beats what luck alone would show.</div>
+        </div>
+        <dl class="terms">
+          <dt>SR&#x0302; &#x2212; SR<sub>0</sub></dt><dd>How far the winner sits above the luck bar. If it is below the bar, the DSR is under 0.5.</dd>
+          <dt>&#x221A;(T &#x2212; 1)</dt><dd>More evidence, more confidence. T is the effective number of trades from step one, not the raw count, so correlated days cannot inflate it.</dd>
+          <dt>γ<sub>3</sub> (skewness)</dt><dd>Trading returns are often lopsided. Many small losses and a few big wins is positive skew, which shrinks the denominator and helps a little. Many small wins and rare crashes is negative skew, which hurts.</dd>
+          <dt>γ<sub>4</sub> (kurtosis)</dt><dd>How fat the tails are; a normal curve has 3. With fat tails a handful of extreme trades drive the average, so the Sharpe is less reliable. That raises the denominator and lowers the DSR.</dd>
+        </dl>
+
+        <h3>We do not know how many settings we tried</h3>
+        <p>N should be the number of <em>genuinely different</em> settings tried. That is hard to pin down. A search that tries neighbours of one setting is not trying independent settings, but earlier research rounds, possibly forgotten ones, also count toward the selection effect. So we do not pick one N. We compute the DSR at several assumed counts, a low one, a middle one and a high one, and read all three. One of them, the middle, is the gate: the number the decision rule uses. The others show how fragile the conclusion is. If a result only survives at the lowest count, we know to be careful.</p>
+        <p class="illus">Illustrative: DSR for a luck bar of SR<sub>0</sub> = 0.127 (spread 0.05, N = 100), skewness 1.5, kurtosis 8. Shading follows the example thresholds used in the decision rule below.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Winner's Sharpe</th><th class="n">T = 60</th><th class="n">120</th><th class="n">200</th><th class="n">400</th></tr></thead>
+          <tbody>
+            <tr><td>0.10</td><td class="n r">0.41</td><td class="n r">0.38</td><td class="n r">0.34</td><td class="n r">0.28</td></tr>
+            <tr><td>0.15</td><td class="n r">0.58</td><td class="n r">0.61</td><td class="n r">0.64</td><td class="n r">0.70</td></tr>
+            <tr><td>0.20</td><td class="n r">0.74</td><td class="n a">0.82</td><td class="n a">0.88</td><td class="n g">0.95</td></tr>
+            <tr><td>0.25</td><td class="n a">0.87</td><td class="n a">0.94</td><td class="n g">0.98</td><td class="n g">1.00</td></tr>
+            <tr><td>0.30</td><td class="n a">0.94</td><td class="n g">0.99</td><td class="n g">1.00</td><td class="n g">1.00</td></tr>
+          </tbody>
+        </table></div>
+        <p>Read it row by row. A winner below the luck bar (0.10) gets <em>less</em> convincing with more trades, because more data makes it clearer that the result was luck. A winner well above the bar becomes convincing quickly. In the middle rows a single week of data leaves us undecided: a Sharpe of 0.20 is in the red zone on 60 effective trades and green on 400. Shading is a visual aid only; the thresholds are in the text.</p>
+
+        <div class="calc" id="calc" data-enhance="dsr">
+          <h3>Try it: DSR calculator</h3>
+          <p class="calc-fallback">With JavaScript enabled, an interactive calculator appears here: sliders for each input, a readout of the luck bar and the DSR, and a curve. It uses the same formulas as above. Without JavaScript, the tables above show the same behaviour.</p>
+        </div>
+
+        <div class="note"><b>When the DSR cannot be computed.</b> With fewer than two trades, zero variance, fewer than two trials with a Sharpe ratio, an effective sample of one or less, or a negative value under the square root, the DSR is undefined. We treat that as <em>no answer</em>, not as a failure. More on this below.</div>
+
+        <h2>Step three: a placebo</h2>
+        <p>A strategy has two halves: when to enter and when to exit. Tuning can improve both, and good exits alone can make money from almost any entries. We want to know whether the entry rules add anything.</p>
+        <p>So we compare the winner with a placebo strategy:</p>
+        <ul>
+          <li>It enters at <b>random</b>, matched to the real strategy on the characteristics that the entries could otherwise exploit.</li>
+          <li>It uses <b>exactly the winner's tuned exits</b>.</li>
+          <li>It takes every random entry its plan gives it, so nothing clever filters it.</li>
+        </ul>
+        <p>The only difference left is the entry rule. We measure profit per trade, strategy minus placebo:</p>
+        <div class="eq">
+          <math display="block"><mi>&#x0394;</mi><mo>=</mo><mfrac><mrow><mo>&#x2211;</mo><msub><mtext>net</mtext><mtext>strategy</mtext></msub></mrow><msub><mi>n</mi><mtext>strategy</mtext></msub></mfrac><mo>&#x2212;</mo><mfrac><mrow><mo>&#x2211;</mo><msub><mtext>net</mtext><mtext>placebo</mtext></msub></mrow><msub><mi>n</mi><mtext>placebo</mtext></msub></mfrac></math>
+          <div class="cap">Average net profit per trade, strategy minus placebo.</div>
+        </div>
+        <h3>Day-block bootstrap</h3>
+        <p>We have one period of data and cannot rerun history, so the bootstrap simulates other periods by reshuffling the days we have:</p>
+        <ol>
+          <li>Draw as many days as we have, <em>with replacement</em>, so a good day may appear twice and a bad day not at all. Do this separately for the strategy and the placebo.</li>
+          <li>Recompute Δ from those days' trades.</li>
+          <li>Repeat many thousands of times, with a fixed random seed so the result is reproducible.</li>
+          <li>Sort the values. The 5th and 95th percentiles give a 90 % interval for Δ.</li>
+        </ol>
+        <p>We resample whole days, not single trades, for the same reason as in step one: trades on one day move together, and resampling single trades would give an interval that is falsely narrow. The entries pass this test if the lower end of the interval is above zero, that is, if they beat random entries even in the less favourable reshuffles.</p>
+        <h3>Mann-Whitney as a second opinion</h3>
+        <p>An average can be dominated by one enormous trade. The Mann-Whitney test ignores sizes and uses only order. It ranks every trade from both groups together and asks whether a random strategy trade tends to rank above a random placebo trade:</p>
+        <div class="eq">
+          <math display="block"><mi>U</mi><mo>=</mo><msub><mi>R</mi><mn>1</mn></msub><mo>&#x2212;</mo><mfrac><mrow><msub><mi>n</mi><mn>1</mn></msub><mo>(</mo><msub><mi>n</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></mfrac><mspace width="2em"></mspace><mi>z</mi><mo>=</mo><mfrac><mrow><mi>U</mi><mo>&#x2212;</mo><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub><mo>/</mo><mn>2</mn><mo>&#x2212;</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow><msub><mi>σ</mi><mi>U</mi></msub></mfrac><mspace width="2em"></mspace><mi>p</mi><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><mi>Φ</mi><mo>(</mo><mi>z</mi><mo>)</mo></math>
+          <div class="cap">R<sub>1</sub> is the sum of the strategy trades' ranks. σ<sub>U</sub> includes a correction for ties, and the &#x2212;&#x00BD; is a continuity correction. The test is one-sided: we only care whether the strategy is <em>better</em>.</div>
+        </div>
+        <p>A p-value below 0.05 counts as a pass. Failing the placebo tests does not by itself sink a result; it raises a caution flag.</p>
+
+        <h2>Step four: cost stress</h2>
+        <p>Replays charge each trade the fees and slippage that our cost model measures. Real costs can come in higher, and many thin edges vanish when costs rise a little. So we recharge every trade at a multiple k of its measured costs:</p>
+        <div class="eq">
+          <math display="block"><msubsup><mtext>net</mtext><mi>i</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msubsup><mo>=</mo><msub><mtext>net</mtext><mi>i</mi></msub><mo>&#x2212;</mo><mo>(</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>&#x00B7;</mo><mo>(</mo><msub><mtext>fees</mtext><mi>i</mi></msub><mo>+</mo><msub><mtext>slippage</mtext><mi>i</mi></msub><mo>)</mo><mspace width="2em"></mspace><mi>k</mi><mo>&#x2208;</mo><mo>{</mo><mn>1.25</mn><mo>,</mo><mn>1.5</mn><mo>,</mo><mn>2</mn><mo>}</mo></math>
+        </div>
+        <p>If the average net profit per trade at a modest stress, for example 1.25 times costs, is zero or below, the edge is too thin to rely on. This test is a gate. It has limits: it is applied after the fact, without re-simulating which trades would still have filled, and it stresses only the costs we measure, not delays between a decision and its execution.</p>
+
+        <h2>Step five: probability of backtest overfitting (advisory)</h2>
+        <p>Bailey, Borwein, López de Prado and Zhu (2017) propose a direct question: if we had tuned on some days and tested on the rest, how often would the best setting have done worse than a typical one on the days it had not seen? The method is called combinatorially symmetric cross-validation (CSCV):</p>
+        <ol>
+          <li>Split the days into a tuning half and a test half in every possible way. With 7 days split 3 and 4, that is 35 splits.</li>
+          <li>For each split, find the setting with the highest total on the tuning days.</li>
+          <li>Rank that setting among all K settings on the test days (1 = worst).</li>
+          <li>Convert the rank to a relative position ω and its log-odds λ. The estimate is the share of splits where the tuning champion landed in the bottom half:</li>
+        </ol>
+        <div class="eq">
+          <math display="block"><mi>&#x03C9;</mi><mo>=</mo><mfrac><mtext>rank</mtext><mrow><mi>K</mi><mo>+</mo><mn>1</mn></mrow></mfrac><mspace width="2em"></mspace><mi>&#x03BB;</mi><mo>=</mo><mi>ln</mi><mfrac><mi>&#x03C9;</mi><mrow><mn>1</mn><mo>&#x2212;</mo><mi>&#x03C9;</mi></mrow></mfrac><mspace width="2em"></mspace><mtext>PBO</mtext><mo>=</mo><mfrac><mrow><mo>#</mo><mo>{</mo><mtext>splits with </mtext><mi>&#x03BB;</mi><mo>&#x2264;</mo><mn>0</mn><mo>}</mo></mrow><mrow><mo>#</mo><mtext>splits</mtext></mrow></mfrac></math>
+        </div>
+        <p>A PBO of 0.2 means the tuning champion fell into the bottom half in 20 % of splits, which is reassuring. Above 0.5, &ldquo;best in tuning&rdquo; predicts &ldquo;good out of sample&rdquo; no better than a coin flip, which is classic overfitting. With few days and settings that are close neighbours, this number is noisy, so we treat it as a warning light only. It can add a caution but can never block a result on its own.</p>
+
+        <h2>Putting it together: a verdict decided in advance</h2>
+        <p>The results feed one decision with three colours. The rules are written down, and the thresholds fixed, <em>before anyone looks at the data</em>. If you can adjust a gate after seeing the numbers, the gate is part of the tuning. The thresholds below are an example of how one might set them, a choice rather than a law:</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Verdict</th><th>Example rule</th><th>Consequence</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip red">RED</span></td><td>DSR at the gate count below 0.80, <b>or</b> average net per trade at 1.25 times costs at most 0</td><td>Do not adopt the tuned version</td></tr>
+            <tr><td><span class="chip grey">NO ANSWER</span></td><td>The DSR cannot be computed and the cost stress is not red</td><td>Report it; do not block</td></tr>
+            <tr><td><span class="chip green">GREEN</span></td><td>DSR at or above 0.95, placebo interval above 0, still profitable at 1.25 times costs, and no caution flags</td><td>Adopt</td></tr>
+            <tr><td><span class="chip amber">AMBER</span></td><td>Anything else</td><td>Adopt, with the weak spots listed and watched</td></tr>
+          </tbody>
+        </table></div>
+        <p>Caution flags, any one of which makes a non-red result amber: a DSR between 0.80 and 0.95; a placebo interval that includes zero; a Mann-Whitney p-value of 0.05 or more; a PBO above 0.5 or one that cannot be computed; too few effective trades.</p>
+        <p>The design is lopsided on purpose. Red is reserved for two claims: the evidence says the result is probably luck, or costs eat the edge. Amber means &ldquo;go ahead, and here is what to watch&rdquo;. A test that cannot compute does not block, and neither does a tool that crashes or receives bad input, because a broken referee should not stop the game. The cost is that the checks can fail open, and we accept that, because the real safeguard is the next section.</p>
+
+        <h2>What this does not do</h2>
+        <p>These tests filter out one common failure, a lucky tuning winner. They do not prove an edge is real. One short sample is one market mood, and no amount of statistics extracts more information from it than it contains. Effective sample sizes are estimates. The count of settings tried is a judgement. The cost model is a model.</p>
+        <p>The real test is forward: run the tuned version on data it has never seen, with the settings frozen, and judge it by rules written in advance. The tests above decide whether a candidate deserves that trial. They do not replace it.</p>
+
+        <h2>References</h2>
+        <ul class="refs">
+          <li>Bailey, D. H. and López de Prado, M. (2014). &ldquo;The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality.&rdquo; <i>Journal of Portfolio Management</i>, 40(5), 94–107.</li>
+          <li>Bailey, D. H., Borwein, J., López de Prado, M. and Zhu, Q. J. (2017). &ldquo;The Probability of Backtest Overfitting.&rdquo; <i>Journal of Computational Finance</i>, 20(4), 39–69.</li>
+          <li>Kish, L. (1965). <i>Survey Sampling.</i> New York: John Wiley &amp; Sons.</li>
+        </ul>
+        <p class="foot">All numbers in this note are illustrative, computed from the formulas shown, and are not results from any real strategy. This is a description of a method, not investment advice.</p>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
