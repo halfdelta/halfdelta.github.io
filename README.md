@@ -19,6 +19,7 @@ The custom domain is set by the `CNAME` file at the root (`halfdelta.com`). DNS 
 | `notes/notes.css` | Styles for the notes pages, loaded after `/style.css`. It reuses the shared custom properties and adds only the red, amber and green status colours (with dark variants). |
 | `notes/<slug>/index.html` | One post per folder, so URLs are `/notes/<slug>/`. Posts use root-relative paths and the same head tags as the home page (`og:url` under `https://halfdelta.com/notes/`). Formulas are MathML (platform math fonts). |
 | `notes/lucky-or-good/dsr.js` | The post's optional DSR calculator (sliders, readout, SVG curve). Same-origin, no libraries. Without it the post's static tables carry the argument. |
+| `notes/lucky-or-good/luck.py` | The post's companion script (standard-library Python): effective trades, luck bar and DSR. Shown inline in a `<details>` block and downloadable. |
 | `404.html` | The not-found page, in the same style. It uses root-relative paths because Pages serves it at any URL. |
 | `favicon.svg`, `apple-touch-icon.png` | Icons. |
 | `og-image.svg`, `og-image.png` | The link preview image. The PNG is the one linked from the meta tags; the SVG is its source. |

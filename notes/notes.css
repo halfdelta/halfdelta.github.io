@@ -269,3 +269,22 @@ dl.terms dd { margin: 0 0 0 var(--space-3); color: var(--muted); }
   .essay { font-size: 1rem; }
   .eq { padding: var(--space-2); }
 }
+
+details.code {
+  margin: var(--space-4) 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--tint-ink);
+  border-radius: 4px;
+}
+details.code summary {
+  cursor: pointer;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+details.code p { margin: var(--space-2) 0; font-size: 0.95rem; }
+details.code pre {
+  margin: 0;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}

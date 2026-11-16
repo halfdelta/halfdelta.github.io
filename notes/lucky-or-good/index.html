@@ -20,7 +20,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="A family of S-shaped curves that all pass through one point, labelled Half Delta.">
-  <meta property="article:published_time" content="2026-11-12">
+  <meta property="article:published_time" content="2026-11-16">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Lucky or good? Testing a tuned strategy for luck">
   <meta name="twitter:description" content="If you try many settings and keep the best one, its result is inflated. How we measure by how much, and how we turn the answer into a decision.">
@@ -36,7 +36,7 @@
       <header>
         <h1>Lucky or good? Testing a tuned strategy for luck</h1>
         <p class="dek">If you try many settings and keep the best one, its result is inflated. This note shows how we measure by how much, and how we turn the answer into a decision.</p>
-        <p class="byline"><time datetime="2026-11-12">12 November 2026</time> · Half Delta</p>
+        <p class="byline"><time datetime="2026-11-16">16 November 2026</time> · Half Delta</p>
       </header>
 
       <div class="essay">
@@ -79,6 +79,7 @@
           </tbody>
         </table></div>
         <p>Even a small day effect (ρ = 0.05) cuts 280 trades to about 95 effective ones, and to 29 if one day dominates. This N<sub>eff</sub> is the sample size we feed into the luck test below, and we flag any result that rests on too few effective trades. We also report an interval for ρ, found by resampling whole days, so that the uncertainty in ρ itself stays visible when there are only a few days.</p>
+        <p>Days are not the only cluster. When several trades land on the same asset, for example a burst of entries into one name during one move, those trades share a fate too, often more than trades that merely share a day. Returns then cluster two ways at once, by time and by asset, and a correction for days alone overstates the evidence. Methods exist for clustering along two dimensions at once (Cameron, Gelbach and Miller, 2011). Ours corrects for days only, so we read N<sub>eff</sub> as an upper bound, and we treat a strategy that keeps returning to the same few assets as a reason for extra caution.</p>
 
         <h2>Step two: the Deflated Sharpe Ratio</h2>
         <p>The <b>Deflated Sharpe Ratio</b> (DSR), introduced by Bailey and López de Prado (2014), corrects a winner's Sharpe ratio for the selection effect. It has two steps.</p>
@@ -140,6 +141,68 @@
         </div>
 
         <div class="note"><b>When the DSR cannot be computed.</b> With fewer than two trades, zero variance, fewer than two trials with a Sharpe ratio, an effective sample of one or less, or a negative value under the square root, the DSR is undefined. We treat that as <em>no answer</em>, not as a failure. More on this below.</div>
+        <details class="code">
+          <summary>The code: effective trades, luck bar and DSR in Python</summary>
+          <p>The formulas above, in plain Python with only the standard library. Feed it per-trade returns grouped by day, the spread of your trial Sharpes and your number of settings. Run as a script, it prints three numbers from the tables above. <a href="/notes/lucky-or-good/luck.py" download>Download luck.py</a></p>
+          <pre><code>"""Effective sample size, luck bar and Deflated Sharpe Ratio, as in the note.
+Standard library only (Python 3.8+). Returns are per trade: net profit / stake."""
+from math import e, sqrt
+from statistics import NormalDist, fmean, stdev
+
+PHI = NormalDist()
+EULER_GAMMA = 0.5772156649015329
+
+
+def icc(days):
+    """One-way ANOVA intraclass correlation; days = one list of returns per day."""
+    days = [d for d in days if d]
+    sizes = [len(d) for d in days]
+    n, k = sum(sizes), len(days)
+    if k &lt; 2 or n &lt;= k:
+        return 0.0
+    grand = fmean(x for d in days for x in d)
+    msb = sum(len(d) * (fmean(d) - grand) ** 2 for d in days) / (k - 1)
+    msw = sum((x - fmean(d)) ** 2 for d in days for x in d) / (n - k)
+    n0 = (n - sum(s * s for s in sizes) / n) / (k - 1)
+    den = msb + (n0 - 1) * msw
+    return max(0.0, (msb - msw) / den) if den &gt; 0 else 0.0
+
+
+def kish_n_eff(sizes, rho):
+    """Effective trades from the day sizes and rho+, using Kish's cluster size m."""
+    n = sum(sizes)
+    m = sum(s * s for s in sizes) / n
+    return n / (1 + (m - 1) * max(rho, 0.0))
+
+
+def luck_bar(sd_trial_sharpes, n_trials):
+    """SR0: the best Sharpe expected among n_trials settings with no edge."""
+    q = PHI.inv_cdf
+    return sd_trial_sharpes * ((1 - EULER_GAMMA) * q(1 - 1 / n_trials)
+                               + EULER_GAMMA * q(1 - 1 / (n_trials * e)))
+
+
+def sharpe_shape(returns):
+    """Per-trade Sharpe (n - 1), population skewness, non-excess kurtosis."""
+    mu, n = fmean(returns), len(returns)
+    m2, m3, m4 = (sum((x - mu) ** p for x in returns) / n for p in (2, 3, 4))
+    return mu / stdev(returns), m3 / m2 ** 1.5, m4 / m2 ** 2
+
+
+def dsr(sr, sr0, t, skew, kurt):
+    """P(true Sharpe &gt; SR0) with T effective trades; None means 'no answer'."""
+    rad = 1 - skew * sr + (kurt - 1) / 4 * sr * sr
+    if t &lt;= 1 or rad &lt;= 0:
+        return None
+    return PHI.cdf((sr - sr0) * sqrt(t - 1) / sqrt(rad))
+
+
+if __name__ == "__main__":
+    print(round(kish_n_eff([40] * 7, 0.05)))              # 95, as in the first table
+    print(round(kish_n_eff([10] * 6 + [220], 0.05)))      # 29
+    bar = luck_bar(0.05, 100)
+    print(round(bar, 3), round(dsr(0.20, bar, 120, 1.5, 8), 2))  # 0.127 0.82</code></pre>
+        </details>
 
         <h2>Step three: a placebo</h2>
         <p>A strategy has two halves: when to enter and when to exit. Tuning can improve both, and good exits alone can make money from almost any entries. We want to know whether the entry rules add anything.</p>
@@ -149,6 +212,7 @@
           <li>It uses <b>exactly the winner's tuned exits</b>.</li>
           <li>It takes every random entry its plan gives it, so nothing clever filters it.</li>
         </ul>
+        <p>&ldquo;Matched&rdquo; carries most of the weight here. In thin, young markets, many assets at a random moment are close to dead: little liquidity left, few buyers, sometimes one large holder about to sell. A placebo that enters those blindly takes trades no real strategy would take, and the replay then has to invent fills for it, at prices nobody would have paid or for more than the market could hold. Either way, its result has nothing to do with entry skill. Usually it loses on assets nobody would have bought, and even a weak strategy beats it. Now and then a fill that could never have happened hands it a windfall. So the random entries have to come from the same kind of opportunity the strategy saw, matched on the liquidity available at entry and on the asset's age, and every simulated fill has to fit inside the liquidity that was actually there. We learned the second part the hard way: one of our own placebo runs booked a fill larger than the market it was trading in. A placebo that is too easy to beat is worse than none, because it turns a weak result into a confident one.</p>
         <p>The only difference left is the entry rule. We measure profit per trade, strategy minus placebo:</p>
         <div class="eq">
           <math display="block"><mi>&#x0394;</mi><mo>=</mo><mfrac><mrow><mo>&#x2211;</mo><msub><mtext>net</mtext><mtext>strategy</mtext></msub></mrow><msub><mi>n</mi><mtext>strategy</mtext></msub></mfrac><mo>&#x2212;</mo><mfrac><mrow><mo>&#x2211;</mo><msub><mtext>net</mtext><mtext>placebo</mtext></msub></mrow><msub><mi>n</mi><mtext>placebo</mtext></msub></mfrac></math>
@@ -204,6 +268,7 @@
         </table></div>
         <p>Caution flags, any one of which makes a non-red result amber: a DSR between 0.80 and 0.95; a placebo interval that includes zero; a Mann-Whitney p-value of 0.05 or more; a PBO above 0.5 or one that cannot be computed; too few effective trades.</p>
         <p>The design is lopsided on purpose. Red is reserved for two claims: the evidence says the result is probably luck, or costs eat the edge. Amber means &ldquo;go ahead, and here is what to watch&rdquo;. A test that cannot compute does not block, and neither does a tool that crashes or receives bad input, because a broken referee should not stop the game. The cost is that the checks can fail open, and we accept that, because the real safeguard is the next section.</p>
+        <p>Red is also not a verdict on the idea behind a strategy. Often it only says the sample is too small. With the example luck bar of 0.127, a strategy whose true per-trade Sharpe is 0.15 scores a DSR of about 0.58 on 60 effective trades, which is red. Telling 0.15 apart from 0.127 with reasonable confidence would take on the order of ten thousand effective trades. So a red result starts a diagnosis rather than ending one. We look at where the result came from: the timing of entries, each exit rule, and costs and delays. That tells us whether the edge is missing, eaten by execution, or simply not measurable yet.</p>
 
         <h2>What this does not do</h2>
         <p>These tests filter out one common failure, a lucky tuning winner. They do not prove an edge is real. One short sample is one market mood, and no amount of statistics extracts more information from it than it contains. Effective sample sizes are estimates. The count of settings tried is a judgement. The cost model is a model.</p>
@@ -213,6 +278,7 @@
         <ul class="refs">
           <li>Bailey, D. H. and López de Prado, M. (2014). &ldquo;The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality.&rdquo; <i>Journal of Portfolio Management</i>, 40(5), 94–107.</li>
           <li>Bailey, D. H., Borwein, J., López de Prado, M. and Zhu, Q. J. (2017). &ldquo;The Probability of Backtest Overfitting.&rdquo; <i>Journal of Computational Finance</i>, 20(4), 39–69.</li>
+          <li>Cameron, A. C., Gelbach, J. B. and Miller, D. L. (2011). &ldquo;Robust Inference With Multiway Clustering.&rdquo; <i>Journal of Business &amp; Economic Statistics</i>, 29(2), 238–249.</li>
           <li>Kish, L. (1965). <i>Survey Sampling.</i> New York: John Wiley &amp; Sons.</li>
         </ul>
         <p class="foot">All numbers in this note are illustrative, computed from the formulas shown, and are not results from any real strategy. This is a description of a method, not investment advice.</p>
