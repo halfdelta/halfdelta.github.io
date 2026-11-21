@@ -407,12 +407,19 @@ if __name__ == "__main__":
         <p>So, amber: we adopt the tuned version, write down its weak spots (a modest DSR, a result that depends on the settings count, one week of data) and watch them. Red would have kept the current version and started a diagnosis; green would have adopted it with nothing in particular to watch; no answer would have been reported without blocking the switch.</p>
         <p>None of these outcomes proves an edge; the forward test does. A <b>forward test</b> runs the tuned version, settings frozen, on market data it has never seen, as that data arrives, and judges it by rules written in advance. The checks above decide only whether a candidate deserves that trial. I think of them as a patient skeptic sitting next to the search: they can never tell us we are good, but they are very good at catching the times we were only lucky.</p>
 
+        <h2>Related approaches</h2>
+        <p>None of the building blocks here is new. The question of whether the best of many backtests beats luck has other well-known answers. <b>White&rsquo;s Reality Check</b> (2000) and <b>Hansen&rsquo;s test for superior predictive ability</b> (2005) bootstrap the whole set of strategies tried and ask whether the best one really beats a benchmark. <b>Harvey and Liu</b> (2015) &ldquo;haircut&rdquo; a Sharpe ratio for the number of tests behind it, using the multiple-testing corrections of statistics.</p>
+        <p>What we add is mostly practical: an effective trade count that allows for trades on the same day moving together, fed into the DSR; a placebo matched on liquidity and age whose fills must fit the market that was really there; several guesses at the settings count, with one fixed in advance as the gate; and a decision rule, written before the data is seen, that turns all of it into one call.</p>
+
         <h2>References</h2>
         <ul class="refs">
           <li>Bailey, D. H. and López de Prado, M. (2014). &ldquo;The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality.&rdquo; <i>Journal of Portfolio Management</i>, 40(5), 94–107.</li>
           <li>Bailey, D. H., Borwein, J., López de Prado, M. and Zhu, Q. J. (2017). &ldquo;The Probability of Backtest Overfitting.&rdquo; <i>Journal of Computational Finance</i>, 20(4), 39–69.</li>
           <li>Cameron, A. C., Gelbach, J. B. and Miller, D. L. (2011). &ldquo;Robust Inference With Multiway Clustering.&rdquo; <i>Journal of Business &amp; Economic Statistics</i>, 29(2), 238–249.</li>
+          <li>Hansen, P. R. (2005). &ldquo;A Test for Superior Predictive Ability.&rdquo; <i>Journal of Business &amp; Economic Statistics</i>, 23(4), 365–380.</li>
+          <li>Harvey, C. R. and Liu, Y. (2015). &ldquo;Backtesting.&rdquo; <i>Journal of Portfolio Management</i>, 42(1), 13–28.</li>
           <li>Kish, L. (1965). <i>Survey Sampling.</i> New York: John Wiley &amp; Sons.</li>
+          <li>White, H. (2000). &ldquo;A Reality Check for Data Snooping.&rdquo; <i>Econometrica</i>, 68(5), 1097–1126.</li>
         </ul>
         <p class="foot">All numbers in this post are illustrative, computed from the formulas shown, and are not results from any real strategy. This is a description of a method, not investment advice.</p>
       </div>
