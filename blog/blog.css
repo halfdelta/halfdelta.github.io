@@ -316,3 +316,18 @@ article .author {
 .note.short ol { margin: 0 0 var(--space-2); padding-left: 1.3rem; }
 .note.short li { margin-bottom: 0.15rem; }
 .note.short p:last-child { margin-bottom: 0; }
+
+/* The four outcomes in the short-version box: one per line, chips in an aligned column. */
+.outcomes {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+.outcomes li {
+  display: grid;
+  grid-template-columns: 6.5em 1fr;
+  column-gap: var(--space-2);
+  align-items: baseline;
+  margin-top: var(--space-1);
+}
+.outcomes .chip { justify-self: start; }
