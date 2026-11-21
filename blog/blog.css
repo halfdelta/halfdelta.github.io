@@ -1,4 +1,4 @@
-/* Notes section. Loaded after /style.css and built on its custom properties.
+/* Engineering blog. Loaded after /style.css and built on its custom properties.
    The only additions are the three status colours, used for red / amber / green. */
 
 :root {
@@ -25,6 +25,7 @@
 }
 
 .page {
+  width: 100%;
   max-width: calc(var(--prose) + 2 * var(--gutter));
   margin: 0 auto;
   padding: var(--space-4) var(--gutter) calc(var(--space-5) * 2);
@@ -128,7 +129,8 @@
   text-align: center;
 }
 
-.eq math { font-size: 1.15em; }
+.eq .katex-display { margin: 0; }
+.eq .katex { font-size: 1.1em; }
 .eq .cap {
   margin-top: var(--space-2);
   font-family: var(--sans);
@@ -288,3 +290,13 @@ details.code pre {
   font-size: 0.8rem;
   line-height: 1.45;
 }
+
+/* Author block and note. */
+.author { margin: 0 0 var(--space-4); font-size: var(--text-small); color: var(--muted); }
+.author p { margin: 0 0 var(--space-1); }
+article .author {
+  margin: var(--space-5) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+.eq .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 0.2em 0; }
