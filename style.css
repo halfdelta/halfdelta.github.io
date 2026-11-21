@@ -78,8 +78,8 @@ body {
 
 .stage {
   position: relative;
-  min-height: 100vh;
-  min-height: 100svh;
+
+  flex: 1 0 auto;
 }
 
 /* Home page and 404: the chart. */
@@ -276,3 +276,43 @@ body {
 }
 
 .label p.next { margin-top: var(--space-2); }
+
+/* Footer, shared by every page. The body is a column so the footer sits
+   below the home page's chart instead of over it. */
+body {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+body > main { flex: 1 0 auto; min-width: 0; }
+.stage { min-height: 16rem; }
+
+.site-foot {
+  flex: none;
+  padding: 0 var(--gutter);
+  font-size: var(--text-small);
+  line-height: var(--leading-body);
+  color: var(--muted);
+}
+
+.site-foot-in {
+  width: 100%;
+  max-width: 38rem;
+  margin: 0 auto;
+  padding: var(--space-3) 0 var(--space-4);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+
+.site-foot.wide { padding: 0 var(--space-4); }
+.site-foot.wide .site-foot-in { max-width: none; margin: 0; }
+.site-foot p,
+.site-foot nav { margin: 0; }
+.site-foot a { color: var(--muted); text-underline-offset: 0.2em; }
+.site-foot a:hover { color: var(--ink); }
+.site-foot a:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 2px; }
