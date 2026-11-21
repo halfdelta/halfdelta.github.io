@@ -1,5 +1,5 @@
 /* Engineering blog. Loaded after /style.css and built on its custom properties.
-   The only additions are the three status colours, used for red / amber / green. */
+   The only additions are the three status colors, used for red / amber / green. */
 
 :root {
   --red: #B3372E;
@@ -175,6 +175,8 @@ dl.terms dd { margin: 0 0 0 var(--space-3); color: var(--muted); }
 }
 
 .tbl th { font-weight: 600; border-bottom-color: var(--ink); }
+.tbl th[rowspan] { vertical-align: bottom; }
+.tbl th[colspan] { text-align: center; border-bottom-color: var(--rule); }
 .tbl .n { text-align: right; white-space: nowrap; }
 .tbl .r { background: var(--tint-red); }
 .tbl .a { background: var(--tint-amber); }
@@ -272,18 +274,26 @@ dl.terms dd { margin: 0 0 0 var(--space-3); color: var(--muted); }
   .eq { padding: var(--space-2); }
 }
 
-details.code {
+details.code,
+details.more {
   margin: var(--space-4) 0;
   padding: var(--space-2) var(--space-3);
   background: var(--tint-ink);
   border-radius: 4px;
 }
-details.code summary {
+details.code summary,
+details.more summary {
   cursor: pointer;
   font-family: var(--sans);
   font-weight: 600;
 }
 details.code p { margin: var(--space-2) 0; font-size: 0.95rem; }
+details.more[open] summary { margin-bottom: var(--space-2); }
+details.more p { margin: var(--space-2) 0; font-size: 0.95rem; }
+details.more .eq { margin: var(--space-2) 0; background: var(--paper); }
+details.more dl.terms { margin: 0 0 var(--space-2); }
+details.more dl.terms dt:first-child { margin-top: 0; }
+dl.terms .katex { font-size: 1.05em; }
 details.code pre {
   margin: 0;
   overflow-x: auto;
@@ -300,3 +310,9 @@ article .author {
   border-top: 1px solid var(--rule);
 }
 .eq .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 0.2em 0; }
+
+/* The short version box near the top of a post. */
+.note.short p { margin: 0 0 var(--space-2); }
+.note.short ol { margin: 0 0 var(--space-2); padding-left: 1.3rem; }
+.note.short li { margin-bottom: 0.15rem; }
+.note.short p:last-child { margin-bottom: 0; }

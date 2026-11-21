@@ -1,4 +1,4 @@
-"""Effective sample size, luck bar and Deflated Sharpe Ratio, as in the note.
+"""Effective sample size, luck bar and Deflated Sharpe Ratio, as in the post.
 Standard library only (Python 3.8+). Returns are per trade: net profit / stake."""
 from math import e, sqrt
 from statistics import NormalDist, fmean, stdev

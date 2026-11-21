@@ -1,4 +1,4 @@
-/* DSR calculator for the "Lucky or good?" note. Progressive enhancement:
+/* DSR calculator for the "Lucky or good?" post. Progressive enhancement:
    the tables in the page carry the argument without it. Same-origin, no libraries. */
 (function () {
   "use strict";
