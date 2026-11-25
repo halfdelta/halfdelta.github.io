@@ -1,6 +1,6 @@
 # halfdelta.com
 
-The placeholder website for Half Delta: one page, a 404 page, and a small engineering blog.
+The placeholder website for Half Delta: one page, a 404 page, a small engineering blog and a team page.
 
 ## How it is served
 
@@ -20,8 +20,11 @@ The custom domain is set by the `CNAME` file at the root (`halfdelta.com`). DNS 
 | `blog/<slug>/index.html` | One post per folder, so URLs are `/blog/<slug>/`. Posts use root-relative paths and the same head tags as the home page (`og:url` under `https://halfdelta.com/blog/`). Formulas are KaTeX, prerendered to static HTML (with MathML for screen readers); the TeX source sits next to each formula in an HTML comment, `<!-- tex: ... -->`. No KaTeX JavaScript is shipped. |
 | `blog/lucky-or-good/dsr.js` | The post's optional DSR calculator (sliders, readout, SVG curve). Same-origin, no libraries. Without it the post's static tables carry the argument. |
 | `blog/lucky-or-good/luck.py` | The post's companion script (standard-library Python): effective trades, luck bar and DSR. Shown inline in a `<details>` block and downloadable. |
+| `team/index.html` | The Team page at `/team/`: one `<li>` per person (mark, name, title, short text, one aside line). Same head tags as the blog pages (`og:url` under `https://halfdelta.com/team/`) and root-relative paths. Each person's mark is an inline SVG line drawing in the ink and signal colours. Loads `/style.css`, `/blog/blog.css` (for the page column, top nav, `h1` and dek) and `/team/team.css`. |
+| `team/team.css` | Styles for the Team page: the person rows, the marks and their theme colours, and a narrower layout under 480 px. |
+| `team/team.js` | Optional small surprises on the Team page (described in its header comment). The page is linked from the home page and from every footer. Same-origin, no libraries, no storage, no requests. Without it the page is complete; with reduced motion nothing travels. |
 | `assets/katex/` | Self-hosted KaTeX 0.16.11 (MIT, `LICENSE` included): `katex.min.css` edited to reference woff2 fonts only, and the 20 woff2 files in `fonts/` (about 300 KB; a page downloads only the faces it uses). Used for the post formulas. |
-| Footer | Every page ends with a `<footer class="site-foot">` (copyright and Home / Engineering blog / LinkedIn links). Styles are in `style.css`; the body is a flex column so the footer sits below the home page chart. |
+| Footer | Every page ends with a `<footer class="site-foot">` (copyright and Home / Engineering blog / Team / LinkedIn links). Styles are in `style.css`; the body is a flex column so the footer sits below the home page chart. |
 | `404.html` | The not-found page, in the same style. It uses root-relative paths because Pages serves it at any URL. |
 | `favicon.svg`, `apple-touch-icon.png` | Icons. |
 | `og-image.svg`, `og-image.png` | The link preview image. The PNG is the one linked from the meta tags; the SVG is its source. |
