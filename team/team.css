@@ -140,9 +140,9 @@
   transition: transform 0.5s cubic-bezier(0.3, 0.7, 0.3, 1);
 }
 
-/* The gorilla answers to clicks (script only). */
-.js-team .mark-gorilla { cursor: pointer; border-radius: 50%; }
-.js-team .mark-gorilla:focus-visible {
+/* Marks that answer to clicks (script only). */
+.js-team .mark[role="button"] { cursor: pointer; border-radius: 50%; }
+.js-team .mark[role="button"]:focus-visible {
   outline: 2px solid var(--signal);
   outline-offset: 3px;
 }
@@ -172,6 +172,30 @@
   100% { transform: translateY(0) rotate(0); }
 }
 
+/* GoiDev67's mark winks on hover or focus; opening it shows where it all
+   started and lights the fixed point of the Half Delta mark. */
+.eye-wink {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.15s ease;
+}
+.js-team .mark-goidev:hover .eye-wink,
+.js-team .mark-goidev:focus-visible .eye-wink { transform: scaleY(0.2); }
+
+.origin { display: flex; align-items: baseline; gap: var(--space-2); margin-top: var(--space-3); }
+.origin[hidden] { display: none; }
+.origin.on { animation: origin-in 0.7s ease both; }
+.spark { flex: none; width: 0.8rem; height: 0.8rem; align-self: flex-start; margin-top: 0.22em; }
+.spark path { fill: var(--signal); }
+
+@keyframes origin-in {
+  from { opacity: 0; transform: translateY(0.3rem); }
+  to { opacity: 1; transform: none; }
+}
+
+.delta-mark .ring { transition: fill 0.6s ease; }
+.delta-mark.lit .ring { fill: var(--signal); }
+
 /* Visually hidden, for the polite announcements. */
 .vh {
   position: absolute;
@@ -194,6 +218,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vane-arrow,
-  .delta-note { transition: none; }
-  .banana { animation: none; }
+  .delta-note,
+  .eye-wink,
+  .delta-mark .ring { transition: none; }
+  .banana,
+  .origin.on { animation: none; }
 }

@@ -8,6 +8,8 @@
  * - The old cheat code moves the Half Delta mark's point from half delta to
  *   full delta, and back.
  * - Felix's and Keel's marks have hover titles.
+ * - GoiDev67's mark winks on hover; opening it shows where it all started
+ *   and lights the fixed point of the Half Delta mark for a moment.
  *
  * With reduced motion the vane stays still, and the banana and the point
  * appear in place instead of travelling. No storage, no requests.
@@ -25,6 +27,16 @@
     window.setTimeout(function () { news.textContent = text; }, 50);
   }
 
+  // A mark that answers to clicks, Enter and Space.
+  function asButton(el, label) {
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("aria-label", label);
+    el.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); el.click(); }
+    });
+  }
+
   // For anyone who opens the console.
   try {
     console.log(
@@ -33,7 +45,8 @@
       "                  _.-'\n" +
       "      ---...___.-'        <- the fixed point is in the middle\n\n" +
       "Reading the source? Good habit. We do the same every time a number looks too nice.\n" +
-      "Two things to try on this page: the old code (↑ ↑ ↓ ↓ ← → ← → B A), and a little persistence with the gorilla.",
+      "Two things to try on this page: the old code (↑ ↑ ↓ ↓ ← → ← → B A), and a little persistence with the gorilla.\n\n" +
+      "✦ Where it started: GoiDev67, the spark. His mark remembers.",
       "font: 600 15px Georgia, serif;", "font: 12px ui-monospace, Menlo, monospace;"
     );
   } catch (e) { /* no console, no message */ }
@@ -71,9 +84,7 @@
   var gorilla = document.querySelector(".mark-gorilla");
   var basket = gorilla && gorilla.querySelector(".bananas");
   if (gorilla && basket) {
-    gorilla.setAttribute("role", "button");
-    gorilla.setAttribute("tabindex", "0");
-    gorilla.setAttribute("aria-label", "Gorilla’s mark, a friendly gorilla");
+    asButton(gorilla, "Gorilla’s mark, a friendly gorilla");
     var clicks = 0, last = 0, dropped = 0;
     var spots = [[58, 62, 0], [4, 66, -18], [36, 74, 12], [66, 30, 24], [-2, 30, -30]];
     var BANANA =
@@ -103,8 +114,28 @@
     };
 
     gorilla.addEventListener("click", poke);
-    gorilla.addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); poke(); }
+  }
+
+  // ---------------------------------------------------------------------
+  // GoiDev67's mark opens a line on where it all started, and lights the
+  // fixed point of the Half Delta mark for a moment.
+  var goi = document.querySelector(".mark-goidev");
+  var origin = document.getElementById("origin");
+  var delta = document.querySelector(".delta-mark");
+  if (goi && origin) {
+    asButton(goi, "GoiDev67’s mark, a grin between angle brackets");
+    goi.setAttribute("aria-expanded", "false");
+    goi.setAttribute("aria-controls", "origin");
+    var unlit = null;
+    goi.addEventListener("click", function () {
+      var open = origin.hidden;
+      origin.hidden = !open;
+      origin.classList.toggle("on", open);
+      goi.setAttribute("aria-expanded", open ? "true" : "false");
+      if (!open || !delta) return;
+      delta.classList.add("lit");
+      window.clearTimeout(unlit);
+      unlit = window.setTimeout(function () { delta.classList.remove("lit"); }, 2400);
     });
   }
 
